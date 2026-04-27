@@ -19,7 +19,12 @@ export default function TournamentPage() {
 
     useEffect(() => {
         const init = async () => {
-            await Promise.all([fetchTournaments(), fetchUser()]);
+            setLoading(true);
+            try {
+                await Promise.all([fetchTournaments(), fetchUser()]);
+            } finally {
+                setLoading(false);
+            }
         };
         init();
     }, []);
@@ -50,8 +55,6 @@ export default function TournamentPage() {
             }
         } catch (error) {
             console.error("Failed to fetch tournaments:", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -85,7 +88,19 @@ export default function TournamentPage() {
                 <Navbar />
                 <div className="flex flex-col items-center justify-center py-40 px-6 text-center">
                     <h2 className="text-4xl font-black uppercase tracking-tighter text-foreground mb-4 font-poppins">No Tournaments Found</h2>
-                    <p className="text-foreground/40 max-w-md mx-auto">The arena is currently quiet. Check back soon for upcoming official events.</p>
+                    <p className="text-foreground/40 max-w-md mx-auto mb-12">The arena is currently quiet. Check back soon for upcoming official events.</p>
+                    
+                    {isAuthorized && (
+                        <Link 
+                            href="/Tournaments/Manage" 
+                            className="group flex items-center gap-4 bg-primary text-white px-10 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:brightness-110 active:scale-95 transition-all shadow-2xl shadow-primary/20 font-poppins"
+                        >
+                            <svg className="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Manage Arena
+                        </Link>
+                    )}
                 </div>
             </div>
         );

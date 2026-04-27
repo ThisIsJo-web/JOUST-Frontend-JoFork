@@ -43,7 +43,7 @@ function ControlRoomContent() {
         const meData = await meRes.json();
         setUser(meData);
         if (meData.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")) {
-          const usersRes = await authenticatedFetch("/auth/users");
+          const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.USERS);
           if (usersRes.ok) setAllUsers(await usersRes.json());
         } else {
             router.push("/Tournaments");
@@ -54,7 +54,7 @@ function ControlRoomContent() {
         return;
       }
 
-      const tRes = await authenticatedFetch(`/tournaments/${tournamentId}`);
+      const tRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!));
       if (tRes.ok) {
         const tData = await tRes.json();
         setTournament(tData);
@@ -76,7 +76,7 @@ function ControlRoomContent() {
   const handleUpdateTournament = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await authenticatedFetch(`/tournaments/${tournamentId}`, {
+      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -127,17 +127,17 @@ function ControlRoomContent() {
     }
 
     try {
-      const guestRes = await authenticatedFetch("/auth/createguest", {
+      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: guestUsername }),
+        body: JSON.stringify({ guestName: guestUsername }),
       });
-      if (guestRes.ok) {
-        const guest = await guestRes.json();
-        const joined = await handleJoin(guest.id);
-        if (joined) setGuestUsername("");
+      if (res.ok) {
+        setMessage("Guest Registered");
+        setGuestUsername("");
+        fetchData();
       } else {
-        const err = await guestRes.json();
+        const err = await res.json();
         setMessage(err.message || "Guest failed");
       }
     } catch (error) {
@@ -158,20 +158,11 @@ function ControlRoomContent() {
     try {
       for (let i = 0; i < remaining; i++) {
         const guestName = `Guest ${tournament.participants.length + i + 1}`;
-        const guestRes = await authenticatedFetch("/auth/createguest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: guestName }),
-        });
-        
-        if (guestRes.ok) {
-          const guest = await guestRes.json();
-          await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), {
+        await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: guest.id }),
-          });
-        }
+            body: JSON.stringify({ guestName }),
+        });
       }
       await fetchData();
     } catch (error) {
@@ -275,7 +266,7 @@ function ControlRoomContent() {
                             <div key={p.id} className="bg-foreground/5 border border-foreground/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
                                 <div className="flex items-center gap-4">
                                     <span className="text-primary font-black text-[10px] font-poppins w-6">{(idx + 1).toString().padStart(2, '0')}</span>
-                                    <span className="text-sm font-black text-foreground uppercase tracking-tight font-poppins">{p.user.username}</span>
+                                    <span className="text-sm font-black text-foreground uppercase tracking-tight font-poppins">{p.user.username || p.user.guestName}</span>
                                 </div>
                                 <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">#{p.user.id.slice(0,6)}</span>
                             </div>
@@ -360,9 +351,10 @@ function ControlRoomContent() {
                             <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none">
                                 <option value="">SELECT PLAYER</option>
                                 {allUsers.filter(u => !tournament.participants.some(p => p.userId === u.id)).map(u => (
-                                    <option key={u.id} value={u.id}>{u.username.toUpperCase()}</option>
+                                    <option key={u.id} value={u.id}>{(u.username || (u as any).guestName || "Unknown User").toUpperCase()}</option>
                                 ))}
-                            </select>
+                             </select>
+
                             <button onClick={() => selectedUserId && handleJoin(selectedUserId)} className="w-full py-4 bg-foreground/10 text-foreground font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-foreground hover:text-background transition-all font-poppins">Send Invitation</button>
                         </div>
 

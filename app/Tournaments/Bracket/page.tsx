@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useRef } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS } from "../../utils/api";
 import { Match, Round, LeaderboardEntry } from "./types";
-import MatchCard from "./components/MatchCard";
+import EliminationLayout from "./Formats/EliminationLayout";
+import RoundTableLayout from "./Formats/RoundTableLayout";
 
 function BracketViewContent() {
   const searchParams = useSearchParams();
@@ -19,9 +20,9 @@ function BracketViewContent() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [scoringMatch, setScoringMatch] = useState<Match | null>(null);
   const [scoringNote, setScoringNote] = useState("");
+  const [maximizedPanel, setMaximizedPanel] = useState<"TERMINAL" | "STANDINGS" | null>(null);
 
   useEffect(() => {
     if (tournamentId) {
@@ -44,7 +45,7 @@ function BracketViewContent() {
       if (tRes.ok) {
         const tData = await tRes.json();
         setTournament(tData);
-        addLog(`ARENA LOADED`, `${tData.name} STATUS: ${tData.status}`);
+        addLog(`ARENA LOADED`, `${tData.name.toUpperCase()} STATUS: ${tData.status}`);
       }
 
       const lRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.LEADERBOARD(tournamentId!));
@@ -53,7 +54,7 @@ function BracketViewContent() {
         setLeaderboard(lData);
       }
     } catch (error) {
-      addLog("ERROR", "SYNC FAILED");
+      addLog("ERROR", "UPLINK CONNECTION FAILED");
     } finally {
       setLoading(false);
     }
@@ -86,19 +87,15 @@ function BracketViewContent() {
         setScoringMatch(null);
         setScoringNote("");
         await fetchTournamentData();
+      } else {
+        const err = await res.json();
+        addLog("ERROR", err.message || "SUBMISSION REJECTED");
       }
     } catch (error) {
       addLog("ERROR", "UPLINK LOST DURING SCORING");
     } finally {
       setUpdating(null);
     }
-  };
-
-  const getRoundLabel = (format: string, roundNum: number, totalRounds: number) => {
-    if (format === "SWISS") return `PHASE ${roundNum}`;
-    if (roundNum === totalRounds) return "CHAMPIONSHIP";
-    if (roundNum === totalRounds - 1) return "SEMI-FINALS";
-    return `ROUND ${roundNum}`;
   };
 
   if (loading && !tournament) {
@@ -112,96 +109,74 @@ function BracketViewContent() {
     );
   }
 
-  const grandChampion = tournament?.status === "COMPLETED" && leaderboard.length > 0 ? leaderboard[0] : null;
+  const isElimination = tournament?.format === "SINGLE_ELIMINATION" || tournament?.format === "DOUBLE_ELIMINATION";
 
   return (
-    <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-      <Navbar />
-      
-      <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-foreground/5 pb-12">
-            <div>
+    <div className="min-h-screen w-full bg-background font-questrial flex flex-col">
+      <div className="w-full px-4 md:px-8 py-12 mx-auto space-y-12">
+        <div className="h-screen">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-foreground/5 pb-8">
+            <div className="flex items-center gap-6">
                 <button 
                     onClick={() => router.back()}
-                    className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins mb-4 hover:opacity-70 transition-all flex items-center gap-2"
+                    className="w-10 h-10 rounded-xl bg-foreground/5 border border-foreground/10 flex items-center justify-center text-foreground/40 hover:text-primary hover:border-primary/40 transition-all group"
+                    title="EXIT TERMINAL"
                 >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7"/></svg>
-                    EXIT ARENA
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-foreground font-poppins leading-none">
-                    {tournament?.name} <span className="text-foreground/10">/ TERMINAL</span>
-                </h1>
-            </div>
-            
-            <div className="flex items-center gap-6 p-6 bg-foreground/5 rounded-[2rem] border border-foreground/5">
-                <button 
-                    onClick={() => setIsLeaderboardOpen(true)}
-                    className="px-8 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:brightness-110 shadow-lg shadow-primary/20 transition-all font-poppins"
-                >
-                    Standings
-                </button>
-                <div className="h-10 w-[1px] bg-foreground/10" />
-                <div className="flex flex-col">
-                    <span className="text-[9px] text-foreground/40 font-black uppercase tracking-widest font-poppins mb-1">Format</span>
-                    <span className="text-xs font-black text-primary uppercase tracking-tighter">{tournament?.format.replace("_", " ")}</span>
-                </div>
-                <div className="h-10 w-[1px] bg-foreground/10" />
-                <div className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg border ${isAdmin ? 'bg-primary/5 text-primary border-primary/20' : 'bg-foreground/5 text-foreground/40 border-foreground/5'}`}>
-                    {isAdmin ? "ADMIN" : "VIEWER"}
+                <div className="space-y-1">
+                    <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-foreground font-poppins leading-none flex items-center gap-4">
+                        {tournament?.name}
+                        <span className="text-foreground/10 font-thin">/</span>
+                        <span className="text-primary text-xl md:text-2xl">{tournament?.format.replace("_", " ")}</span>
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${isAdmin ? 'text-primary/60' : 'text-foreground/20'}`}>
+                            {isAdmin ? "SYSTEM ADMINISTRATOR" : "AUTHORIZED VIEWER"}
+                        </span>
+                        <div className="w-1 h-1 rounded-full bg-foreground/10" />
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-foreground/20">ARENA TERMINAL v2.0</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <main className="flex-1 overflow-x-auto no-scrollbar pb-12">
-            <div className="flex gap-20 min-w-max items-center">
-                {tournament?.rounds?.map((round: Round) => (
-                    <div key={round.id} className="flex flex-col gap-10">
-                        <h2 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.4em] border-b border-foreground/5 pb-4 text-center font-poppins">
-                            {getRoundLabel(tournament.format, round.roundNumber, tournament.rounds.length)}
-                        </h2>
-                        <div className="flex flex-col gap-10 justify-center h-full">
-                            {round.matches.map((match) => (
-                                <MatchCard 
-                                    key={match.id} 
-                                    match={match} 
-                                    onOpenScoring={() => setScoringMatch(match)} 
-                                    isAdmin={isAdmin}
-                                    isUpdating={updating === match.id}
-                                    leaderboard={leaderboard}
-                                    showPoints={tournament?.format === "SWISS"}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-                
-                {/* Champion Section */}
-                <div className="flex flex-col gap-10">
-                    <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] border-b border-foreground/5 pb-4 text-center font-poppins">
-                        Champion
-                    </h2>
-                    <div className="flex flex-col justify-center h-full">
-                        <div className={`w-64 p-12 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 transition-all duration-700 shadow-2xl ${grandChampion ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-foreground/5 border border-dashed border-foreground/10'}`}>
-                            <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center ${grandChampion ? 'border-white/40 text-white shadow-xl' : 'border-foreground/10 text-foreground/10'}`}>
-                                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
-                            </div>
-                            <div className="flex flex-col items-center text-center">
-                                <span className={`text-[10px] font-black uppercase tracking-[0.3em] mb-2 font-poppins ${grandChampion ? 'text-white/60' : 'text-foreground/20'}`}>The Ultimate Winner</span>
-                                <span className={`text-2xl font-black uppercase tracking-tighter font-poppins leading-tight ${grandChampion ? 'text-white' : 'text-foreground/10'}`}>
-                                    {grandChampion?.username || "AWAITING..."}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        {/* Bracket Area */}
+        <main className="h-[50%]">
+            {isElimination ? (
+                <EliminationLayout 
+                    tournament={tournament}
+                    leaderboard={leaderboard}
+                    isAdmin={isAdmin}
+                    updating={updating}
+                    onOpenScoring={setScoringMatch}
+                />
+            ) : (
+                <RoundTableLayout 
+                    tournament={tournament}
+                    leaderboard={leaderboard}
+                    isAdmin={isAdmin}
+                    updating={updating}
+                    onOpenScoring={setScoringMatch}
+                />
+            )}
         </main>
-
-        <footer className="mt-12">
-            <div className="bg-foreground/5 border border-foreground/5 p-10 rounded-[3rem]">
-                <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em] mb-6 border-b border-foreground/10 pb-4 font-poppins">Terminal Logs</h3>
-                <div className="bg-background rounded-2xl p-6 h-48 overflow-y-auto no-scrollbar font-mono text-[11px] border border-foreground/5">
+    </div>
+        <footer className="mt-24 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Terminal Column */}
+            <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[3rem] group/panel relative">
+                <div className="flex justify-between items-center mb-6 border-b border-foreground/10 pb-4">
+                    <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins">Terminal Logs</h3>
+                    <button 
+                        onClick={() => setMaximizedPanel("TERMINAL")}
+                        className="p-2 hover:bg-primary/10 rounded-lg text-foreground/20 hover:text-primary transition-all"
+                        title="MAXIMIZE"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                    </button>
+                </div>
+                <div className="bg-background rounded-2xl p-6 h-64 overflow-y-auto no-scrollbar font-mono text-[11px] border border-foreground/5">
                     {logs.length === 0 ? (
                         <p className="text-foreground/10 uppercase font-black tracking-widest">NO TELEMETRY RECEIVED</p>
                     ) : (
@@ -217,64 +192,138 @@ function BracketViewContent() {
                     )}
                 </div>
             </div>
+
+            {/* Live Standings Column */}
+            <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[3rem] group/panel relative">
+                <div className="flex justify-between items-center mb-6 border-b border-foreground/10 pb-4">
+                    <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins">Live Standings</h3>
+                    <button 
+                        onClick={() => setMaximizedPanel("STANDINGS")}
+                        className="p-2 hover:bg-primary/10 rounded-lg text-foreground/20 hover:text-primary transition-all"
+                        title="MAXIMIZE"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                    </button>
+                </div>
+                <div className="bg-background rounded-2xl overflow-hidden h-64 border border-foreground/5">
+                    <div className="h-full overflow-y-auto no-scrollbar">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-[9px] font-black text-foreground/30 uppercase tracking-[0.3em] border-b border-foreground/5 sticky top-0 bg-background z-10">
+                                    <th className="py-4 px-6">RANK</th>
+                                    <th className="py-4 px-2">COMBATANT</th>
+                                    <th className="py-4 px-6 text-center">PTS</th>
+                                    <th className="py-4 px-6 text-right">RATIO</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-[11px] font-black text-foreground uppercase">
+                                {leaderboard.map((entry) => (
+                                    <tr key={entry.userId} className="border-b border-foreground/5 hover:bg-foreground/5 transition-all">
+                                        <td className="py-4 px-6 text-primary">#{entry.rank.toString().padStart(2, '0')}</td>
+                                        <td className="py-4 px-2 truncate max-w-[120px]">{entry.guestName || entry.username}</td>
+                                        <td className="py-4 px-6 text-center">{entry.points}</td>
+                                        <td className="py-4 px-6 text-right text-foreground/40">{(entry.matchWinPct * 100).toFixed(0)}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </footer>
       </div>
 
-      {/* Leaderboard Modal */}
-      {isLeaderboardOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="w-full max-w-5xl bg-background border border-foreground/5 rounded-[3rem] p-10 md:p-16 shadow-2xl relative">
-                <button onClick={() => setIsLeaderboardOpen(false)} className="absolute top-10 right-10 text-foreground/40 hover:text-primary transition-all font-black text-xl font-poppins">✕</button>
-                <div className="mb-12">
-                    <span className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins mb-2 block">Live Standings</span>
-                    <h2 className="text-4xl md:text-6xl font-black text-foreground uppercase tracking-tighter font-poppins">Tournament Ranking</h2>
-                </div>
+      {/* Maximized Panel Modal */}
+      {maximizedPanel && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+            <div className="w-full max-w-6xl bg-background border border-primary/20 rounded-[3rem] flex flex-col h-[85vh] shadow-2xl relative overflow-hidden">
+                <button 
+                    onClick={() => setMaximizedPanel(null)} 
+                    className="absolute top-10 right-10 w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/20 hover:text-white transition-all font-black text-xl font-poppins z-50"
+                >
+                    ✕
+                </button>
                 
-                <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em] border-b border-foreground/5">
-                                <th className="py-6 pr-6">RANK</th>
-                                <th className="py-6 px-6">COMBATANT</th>
-                                <th className="py-6 px-6 text-center">PTS</th>
-                                <th className="py-6 px-6 text-center">W-D-L</th>
-                                <th className="py-6 pl-6 text-right">RATIO</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm font-black text-foreground uppercase">
-                            {leaderboard.map((entry) => (
-                                <tr key={entry.userId} className="border-b border-foreground/5 hover:bg-foreground/5 transition-all group">
-                                    <td className="py-6 pr-6 text-primary font-poppins text-lg">#{entry.rank.toString().padStart(2, '0')}</td>
-                                    <td className="py-6 px-6 text-xl tracking-tighter font-poppins">{entry.username}</td>
-                                    <td className="py-6 px-6 text-center text-primary font-poppins text-lg">{entry.points}</td>
-                                    <td className="py-6 px-6 text-center text-foreground/40 font-poppins">{entry.wins}-{entry.draws || 0}-{entry.losses}</td>
-                                    <td className="py-6 pl-6 text-right text-foreground/60 font-poppins">{(entry.matchWinPct * 100).toFixed(0)}%</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="p-12 pb-6 shrink-0">
+                    <span className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins mb-2 block">Full Screen View</span>
+                    <h2 className="text-4xl md:text-6xl font-black text-foreground uppercase tracking-tighter font-poppins">
+                        {maximizedPanel === "TERMINAL" ? "Terminal Telemetry" : "Combat Standings"}
+                    </h2>
                 </div>
+
+                {maximizedPanel === "TERMINAL" ? (
+                    <div className="px-12 pb-12 flex-1 overflow-hidden flex flex-col">
+                        <div className="bg-foreground/5 border border-white/5 rounded-[2rem] p-8 flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="font-mono text-sm space-y-6">
+                                {logs.map((log) => (
+                                    <div key={log.id} className="flex gap-8 border-b border-white/5 pb-4 last:border-0">
+                                        <span className="text-foreground/20 shrink-0 font-black">[{log.timestamp}]</span>
+                                        <span className="text-primary font-black uppercase tracking-widest">{log.action}</span>
+                                        {log.details && <span className="text-foreground/40 tracking-wider">/ {log.details}</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="px-12 pb-12 flex-1 overflow-hidden flex flex-col">
+                         <div className="bg-foreground/5 border border-white/5 rounded-[2rem] flex-1 overflow-hidden flex flex-col">
+                            {/* Sticky Header */}
+                            <div className="px-8 bg-[#161616] border-b border-white/10 shrink-0">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.4em]">
+                                            <th className="py-6 px-8 w-32">RANK</th>
+                                            <th className="py-6 px-4">COMBATANT</th>
+                                            <th className="py-6 px-8 text-center w-48">POINTS</th>
+                                            <th className="py-6 px-8 text-center w-48">W-D-L</th>
+                                            <th className="py-6 px-8 text-right w-48">WIN RATIO</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-8">
+                                <table className="w-full text-left border-collapse">
+                                    <tbody className="text-lg font-black text-foreground uppercase">
+                                        {leaderboard.map((entry) => (
+                                            <tr key={entry.userId} className="border-b border-white/5 hover:bg-white/5 transition-all">
+                                                <td className="py-8 px-8 text-primary font-poppins text-2xl w-32">#{entry.rank.toString().padStart(2, '0')}</td>
+                                                <td className="py-8 px-4 font-poppins tracking-tighter text-2xl">{entry.guestName || entry.username}</td>
+                                                <td className="py-8 px-8 text-center font-poppins text-2xl w-48">{entry.points}</td>
+                                                <td className="py-8 px-8 text-center text-foreground/40 font-poppins text-2xl w-48">{entry.wins}-{entry.draws || 0}-{entry.losses}</td>
+                                                <td className="py-8 px-8 text-right text-foreground/60 font-poppins text-2xl w-48">{(entry.matchWinPct * 100).toFixed(0)}%</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
       )}
 
       {/* Scoring Modal */}
       {scoringMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
           <div className="w-full max-w-md bg-background border border-primary/50 rounded-[3rem] p-12 shadow-2xl relative">
             <button onClick={() => setScoringMatch(null)} className="absolute top-10 right-10 text-foreground/20 hover:text-white transition-all font-black text-xl font-poppins">✕</button>
             <div className="mb-10 text-center">
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em] font-poppins mb-4 block">Manual Override</span>
                 <h2 className="text-3xl font-black text-foreground uppercase tracking-tight font-poppins">Score Combat</h2>
+                <p className="text-[10px] text-foreground/40 uppercase tracking-widest mt-2">Force advancement for available combatants</p>
             </div>
 
             <div className="space-y-6">
                 <button 
                   onClick={() => handleScoreMatch(scoringMatch.player1?.id || null)}
-                  className="w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center"
+                  disabled={!scoringMatch.player1}
+                  className={`w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player1 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                 >
-                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player1?.username}</span>
-                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">VICTORY</span>
+                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player1?.username || (scoringMatch.player1 as any)?.guestName || "TBD"}</span>
+                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">ADVANCE</span>
                 </button>
 
                 <button 
@@ -287,15 +336,34 @@ function BracketViewContent() {
 
                 <button 
                   onClick={() => handleScoreMatch(scoringMatch.player2?.id || null)}
-                  className="w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center"
+                  disabled={!scoringMatch.player2}
+                  className={`w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player2 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                 >
-                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player2?.username}</span>
-                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">VICTORY</span>
+                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player2?.username || (scoringMatch.player2 as any)?.guestName || "TBD"}</span>
+                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">ADVANCE</span>
                 </button>
             </div>
           </div>
         </div>
       )}
+      
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(82, 185, 70, 0.2);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(82, 185, 70, 0.4);
+        }
+      `}</style>
     </div>
   );
 }
@@ -303,7 +371,7 @@ function BracketViewContent() {
 export default function BracketViewPage() {
   return (
     <Suspense fallback={
-        <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="h-screen w-full bg-background flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Initializing Terminal</p>

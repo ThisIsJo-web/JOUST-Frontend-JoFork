@@ -2,12 +2,13 @@ import { Tournament } from "../types";
 
 export interface Match {
   id: string;
-  player1: { id: string; username: string } | null;
-  player2: { id: string; username: string } | null;
+  player1: { id: string; username: string; guestName?: string; isGuest?: boolean } | null;
+  player2: { id: string; username: string; guestName?: string; isGuest?: boolean } | null;
   winnerId?: string | null;
-  winner?: { id: string; username: string } | null;
+  winner?: { id: string; username: string; guestName?: string; isGuest?: boolean } | null;
   status: string;
   roundId: string;
+  isBye: boolean;
 }
 
 export interface Round {
@@ -20,6 +21,8 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   username: string;
+  guestName?: string;
+  isGuest?: boolean;
   points: number;
   wins: number;
   losses: number;

@@ -18,12 +18,16 @@ export interface Tournament {
       id: string;
       username: string;
       email: string;
+      guestName?: string;
+      isGuest?: boolean;
     };
   }[];
   rounds?: {
     matches: {
       winner?: {
         username: string;
+        guestName?: string;
+        isGuest?: boolean;
       };
     }[];
   }[];

@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
     USERS: '/auth/users',
     REGISTERED_USERS: '/auth/registered-users',
     ROLES: (id: string) => `/auth/roles/${id}`,
+    CREATE_GUEST: '/auth/createguest',
   },
   TOURNAMENTS: {
     BASE: '/tournaments',
@@ -36,10 +37,16 @@ export const API_ENDPOINTS = {
     START: (id: string) => `/tournaments/starttournament/${id}`,
     COMPLETE: (id: string) => `/tournaments/${id}/complete`,
     JOIN: (id: string) => `/tournaments/${id}/participants/join`,
+    JOIN_GUEST: (id: string) => `/tournaments/${id}/participants/guest`,
+    LEAVE: (id: string) => `/tournaments/${id}/participants/leave`,
     LEADERBOARD: (id: string) => `/tournaments/${id}/leaderboard`,
     GET_ONE: (id: string) => `/tournaments/${id}`,
+    INVITE: (token: string) => `/tournaments/invite/${token}`,
+    GLOBAL_LEADERBOARD: '/tournaments/leaderboard/global',
   },
   MATCHES: {
     SUBMIT: (id: string) => `/matches/${id}/submit`,
+    GET_ONE: (id: string) => `/matches/${id}`,
+    BY_ROUND: (roundId: string) => `/matches/round/${roundId}`,
   }
 };
