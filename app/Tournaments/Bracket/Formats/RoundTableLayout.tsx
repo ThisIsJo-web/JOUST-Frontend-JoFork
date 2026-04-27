@@ -9,7 +9,7 @@ interface RoundTableLayoutProps {
     leaderboard: LeaderboardEntry[];
     isAdmin: boolean;
     updating: string | null;
-    onOpenScoring: (match: Match) => void;
+    onOpenScoring: (match: Match, pos?: {x: number, y: number}) => void;
 }
 
 export default function RoundTableLayout({
@@ -76,10 +76,14 @@ export default function RoundTableLayout({
                             </h2>
                             <div className="flex flex-col gap-16 md:gap-24 lg:gap-32 justify-center flex-1 overflow-y-auto no-scrollbar py-8">
                                 {round.matches.map((match: Match) => (
-                                    <div key={match.id} className="shrink-0 flex justify-center">
+                                    <div 
+                                        key={match.id} 
+                                        onClick={(e) => onOpenScoring(match, {x: e.clientX, y: e.clientY})}
+                                        className="shrink-0 flex justify-center"
+                                    >
                                         <MatchCard 
                                             match={match} 
-                                            onOpenScoring={() => onOpenScoring(match)} 
+                                            onOpenScoring={() => {}} // Handled by parent container
                                             isAdmin={isAdmin}
                                             isUpdating={updating === match.id}
                                             leaderboard={leaderboard}

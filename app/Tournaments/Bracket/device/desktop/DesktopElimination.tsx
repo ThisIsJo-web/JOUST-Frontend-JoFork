@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Match, Round, LeaderboardEntry } from "../types";
-import MatchCard from "../components/MatchCard";
+import { Match, Round, LeaderboardEntry } from "../../types";
+import MatchCard from "../../components/MatchCard";
 
-interface EliminationLayoutProps {
+interface DesktopEliminationProps {
     tournament: any;
     leaderboard: LeaderboardEntry[];
     isAdmin: boolean;
@@ -15,25 +15,22 @@ interface EliminationLayoutProps {
 
 type Tab = "WINNERS" | "LOSERS" | "GRAND_FINAL";
 
-export default function EliminationLayout({
+export default function DesktopElimination({
     tournament,
     leaderboard,
     isAdmin,
     updating,
     onOpenScoring,
     addLog
-}: EliminationLayoutProps) {
+}: DesktopEliminationProps) {
     const isDoubleElim = tournament.format === "DOUBLE_ELIMINATION";
     const [activeTab, setActiveTab] = useState<Tab>("WINNERS");
     
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
-    const winnersRef = useRef<HTMLDivElement>(null);
-    const losersRef = useRef<HTMLDivElement>(null);
-    const grandFinalRef = useRef<HTMLDivElement>(null);
 
-    // Zoom state (1.0 is the new default, equivalent to previous 0.8)
-    const [zoom, setZoom] = useState(0.8);
+    // Zoom state (1.0 default)
+    const [zoom, setZoom] = useState(1.0);
 
     // 2D Draggable state
     const [isDragging, setIsDragging] = useState(false);
@@ -85,7 +82,6 @@ export default function EliminationLayout({
     };
 
     const handleMatchClick = (match: Match, e?: React.MouseEvent) => {
-        // Just open scoring, no auto-scrolling/focusing
         onOpenScoring(match, e ? { x: e.clientX, y: e.clientY } : undefined);
     };
 
@@ -132,7 +128,6 @@ export default function EliminationLayout({
         if (!scrollContainerRef.current || !isDoubleElim || isDragging) return;
         const container = scrollContainerRef.current;
         
-        // Get positions of the first round in each section
         const winnersElem = winnersRounds[0] ? document.getElementById(`round-${winnersRounds[0].id}`) : null;
         const losersElem = losersRounds[0] ? document.getElementById(`round-${losersRounds[0].id}`) : null;
         const gfElem = grandFinals[0] ? document.getElementById(`round-${grandFinals[0].id}`) : document.getElementById("champion-section");
@@ -146,7 +141,6 @@ export default function EliminationLayout({
             { id: "GRAND_FINAL" as Tab, elem: gfElem }
         ];
 
-        // Find which section element is closest to the center of the viewport
         let closestTab: Tab = activeTab;
         let minDistance = Infinity;
 
@@ -176,8 +170,8 @@ export default function EliminationLayout({
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!scrollContainerRef.current) return;
         setIsDragging(true);
-        setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-        setStartY(e.pageY - scrollContainerRef.current.offsetTop);
+        setStartX(e.clientX);
+        setStartY(e.clientY);
         setScrollLeft(scrollContainerRef.current.scrollLeft);
         setScrollTop(scrollContainerRef.current.scrollTop);
         setDragDistance(0);
@@ -189,13 +183,11 @@ export default function EliminationLayout({
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDragging || !scrollContainerRef.current) return;
         e.preventDefault();
-        const x = e.pageX - scrollContainerRef.current.offsetLeft;
-        const y = e.pageY - scrollContainerRef.current.offsetTop;
-        const walkX = (x - startX) * 1.5;
-        const walkY = (y - startY) * 1.5;
+        const walkX = (e.clientX - startX) * 1.5;
+        const walkY = (e.clientY - startY) * 1.5;
         scrollContainerRef.current.scrollLeft = scrollLeft - walkX;
         scrollContainerRef.current.scrollTop = scrollTop - walkY;
-        setDragDistance(Math.max(Math.abs(x - startX), Math.abs(y - startY)));
+        setDragDistance(Math.max(Math.abs(e.clientX - startX), Math.abs(e.clientY - startY)));
     };
 
     const renderRound = (round: Round, totalInGroup: number) => {
@@ -203,12 +195,7 @@ export default function EliminationLayout({
         const h = internalCanvasHeight;
 
         return (
-            <div 
-                id={`round-${round.id}`}
-                key={round.id} 
-                className="h-[65vh] flex flex-col gap-8 shrink-0 w-80 md:w-96 relative" 
-                style={{ height: `${h}px` }}
-            >
+            <div key={round.id} id={`round-${round.id}`} className="flex flex-col gap-8 shrink-0 w-96 relative" style={{ height: `${h}px` }}>
                 <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 text-center font-poppins shrink-0">
                     {getRoundLabel(round, totalInGroup)}
                 </h2>
@@ -229,7 +216,7 @@ export default function EliminationLayout({
                             >
                                 <MatchCard 
                                     match={match} 
-                                    onOpenScoring={() => {}} // Controlled by container onClick
+                                    onOpenScoring={() => {}} 
                                     isAdmin={isAdmin}
                                     isUpdating={updating === match.id}
                                     leaderboard={leaderboard}
@@ -245,7 +232,7 @@ export default function EliminationLayout({
     };
 
     const renderChampion = () => (
-        <div id="champion-section" className="flex flex-col gap-8 shrink-0 w-80 md:w-96" style={{ height: `${internalCanvasHeight}px` }}>
+        <div id="champion-section" className="flex flex-col gap-8 shrink-0 w-96" style={{ height: `${internalCanvasHeight}px` }}>
             <h2 className="text-[8px] font-black text-primary uppercase tracking-[0.5em] border-b border-white/5 pb-2 text-center font-poppins shrink-0">
                 Champion
             </h2>
@@ -268,11 +255,11 @@ export default function EliminationLayout({
     const trackedUser = leaderboard.find(u => u.userId === trackedUserId);
 
     return (
-        <div className="space-y-6">
+        <div className="h-full flex flex-col gap-6">
             {/* Player Tracker Overlay */}
             {trackedUserId && (
                 <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6 animate-in slide-in-from-bottom-12 duration-700">
-                    <div className="bg-background/90 backdrop-blur-xl border border-primary/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(82,185,70,0.2)]">
+                    <div className="bg-background/90 backdrop-blur-xl border border-primary/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-black">
@@ -290,7 +277,6 @@ export default function EliminationLayout({
                                         addLog("NAV_COMMAND", "SCROLL TO STANDINGS VIEW");
                                     }}
                                     className="p-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-all"
-                                    title="SCROLL TO STANDINGS"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
                                 </button>
@@ -306,8 +292,8 @@ export default function EliminationLayout({
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-4">
-                <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center justify-between gap-6 px-4">
+                <div className="flex items-center gap-4">
                     {isDoubleElim ? (
                         <div onWheel={handleTabWheel} className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl w-fit border border-white/5 cursor-ns-resize">
                             <button onClick={() => handleTabClick("WINNERS")} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all font-poppins ${activeTab === "WINNERS" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-foreground/40 hover:text-foreground'}`}>Winners</button>
@@ -335,39 +321,37 @@ export default function EliminationLayout({
                     </select>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-1 px-2 border-r border-white/5">
-                            {[0.8, 1, 1.2].map((lvl) => (
-                                <button 
-                                    key={lvl} 
-                                    onClick={() => {
-                                        setZoom(lvl);
-                                        addLog("UI_COMMAND", `OPTICAL MAGNIFICATION SET TO ${lvl * 100}%`);
-                                    }} 
-                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${zoom === lvl ? 'bg-primary text-white' : 'text-foreground/20 hover:text-foreground/40'}`}
-                                >
-                                    {lvl === 0.8 ? '80%' : lvl === 1 ? '100%' : '120%'}
-                                </button>
-                            ))}
-                        </div>
-                        <button 
-                            onClick={() => {
-                                const newZoom = Math.max(0.2, zoom - 0.1);
-                                setZoom(newZoom);
-                                addLog("UI_COMMAND", `MAGNIFICATION REDUCED TO ${Math.round(newZoom * 100)}%`);
-                            }} 
-                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                        >-</button>
-                        <button 
-                            onClick={() => {
-                                const newZoom = Math.min(2, zoom + 0.1);
-                                setZoom(newZoom);
-                                addLog("UI_COMMAND", `MAGNIFICATION INCREASED TO ${Math.round(newZoom * 100)}%`);
-                            }} 
-                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                        >+</button>
+                <div className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-1 px-2 border-r border-white/5">
+                        {[0.8, 1, 1.2].map((lvl) => (
+                            <button 
+                                key={lvl} 
+                                onClick={() => {
+                                    setZoom(lvl);
+                                    addLog("UI_COMMAND", `OPTICAL MAGNIFICATION SET TO ${lvl * 100}%`);
+                                }} 
+                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${zoom === lvl ? 'bg-primary text-white' : 'text-foreground/20 hover:text-foreground/40'}`}
+                            >
+                                {lvl === 0.8 ? '80%' : lvl === 1 ? '100%' : '120%'}
+                            </button>
+                        ))}
                     </div>
+                    <button 
+                        onClick={() => {
+                            const newZoom = Math.max(0.2, zoom - 0.1);
+                            setZoom(newZoom);
+                            addLog("UI_COMMAND", `MAGNIFICATION REDUCED TO ${Math.round(newZoom * 100)}%`);
+                        }} 
+                        className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
+                    >-</button>
+                    <button 
+                        onClick={() => {
+                            const newZoom = Math.min(2, zoom + 0.1);
+                            setZoom(newZoom);
+                            addLog("UI_COMMAND", `MAGNIFICATION INCREASED TO ${Math.round(newZoom * 100)}%`);
+                        }} 
+                        className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
+                    >+</button>
                 </div>
             </div>
 
@@ -378,7 +362,7 @@ export default function EliminationLayout({
                 onMouseLeave={handleMouseLeave}
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
-                className={`overflow-auto h-[80vh] custom-scrollbar ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'} bg-black/5 rounded-[3rem] border border-white/5`}
+                className={`flex-1 min-h-0 overflow-auto custom-scrollbar ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'} bg-black/5 rounded-[3rem] border border-white/5`}
             >
                 <div 
                     ref={canvasRef}
@@ -390,30 +374,22 @@ export default function EliminationLayout({
                     }}
                     className="flex gap-20 items-start px-12 pt-12 pb-48"
                 >
-                    <div ref={winnersRef} className="flex gap-20 items-start">
-                        {winnersRounds.map(r => renderRound(r, winnersRounds.length))}
-                        {!isDoubleElim && renderChampion()}
-                    </div>
+                    {winnersRounds.map(r => renderRound(r, winnersRounds.length))}
+                    
                     {isDoubleElim && (
                         <>
-                            <div ref={losersRef} className="flex gap-20 items-start border-l border-white/5 pl-20">
+                            <div className="flex gap-20 items-start border-l border-white/5 pl-20">
                                 {losersRounds.map(r => renderRound(r, losersRounds.length))}
                             </div>
-                            <div ref={grandFinalRef} className="flex gap-20 items-start border-l border-white/5 pl-20">
+                            <div className="flex gap-20 items-start border-l border-white/5 pl-20">
                                 {grandFinals.map(r => renderRound(r, 1))}
                                 {renderChampion()}
                             </div>
                         </>
                     )}
+                    {!isDoubleElim && renderChampion()}
                 </div>
             </div>
-
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(82, 185, 70, 0.3); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(82, 185, 70, 0.5); }
-            `}</style>
         </div>
     );
 }
