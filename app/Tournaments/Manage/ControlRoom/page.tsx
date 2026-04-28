@@ -25,6 +25,7 @@ function ControlRoomContent() {
   const [editIsPrivate, setEditIsPrivate] = useState(false);
 
   const [guestUsername, setGuestUsername] = useState("");
+  const [batchGuestCount, setBatchGuestCount] = useState<number | "">("");
   const [selectedUserId, setSelectedUserId] = useState("");
 
   useEffect(() => {
@@ -145,18 +146,23 @@ function ControlRoomContent() {
     }
   };
 
-  const handleFillWithGuests = async () => {
-    if (!tournament) return;
+  const handleBatchAddGuests = async () => {
+    if (!tournament || !batchGuestCount || Number(batchGuestCount) <= 0) return;
     const remaining = tournament.maxPlayers - tournament.participants.length;
-    if (remaining <= 0) return;
+    const countToAdd = Math.min(Number(batchGuestCount), remaining);
+    
+    if (countToAdd <= 0) {
+      setMessage("Arena at maximum capacity");
+      return;
+    }
 
-    if (!confirm(`Initialize bulk deployment of ${remaining} combatants?`)) return;
+    if (!confirm(`Initialize bulk deployment of ${countToAdd} guests?`)) return;
 
     setLoading(true);
-    setMessage(`Deploying ${remaining} guests...`);
+    setMessage(`Deploying ${countToAdd} guests...`);
     
     try {
-      for (let i = 0; i < remaining; i++) {
+      for (let i = 0; i < countToAdd; i++) {
         const guestName = `Guest ${tournament.participants.length + i + 1}`;
         await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
             method: "POST",
@@ -164,12 +170,33 @@ function ControlRoomContent() {
             body: JSON.stringify({ guestName }),
         });
       }
+      setBatchGuestCount("");
       await fetchData();
     } catch (error) {
       setMessage("Bulk deployment encountered errors");
       await fetchData();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenRegistration = async () => {
+    if (!confirm("Open registration? Players will be able to join this tournament.")) return;
+    try {
+      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startNow: true }),
+      });
+      if (res.ok) {
+        setMessage("Registration opened! Tournament is now OPEN.");
+        fetchData();
+      } else {
+        const err = await res.json();
+        setMessage(err.message || "Failed to open registration");
+      }
+    } catch {
+      setMessage("Connection error");
     }
   };
 
@@ -229,6 +256,14 @@ function ControlRoomContent() {
                 >
                     Brackets
                 </button>
+                {tournament.status === "UPCOMING" && (
+                    <button 
+                        onClick={handleOpenRegistration}
+                        className="flex-1 md:px-12 py-5 bg-green-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-green-600/20 font-poppins"
+                    >
+                        Start Now
+                    </button>
+                )}
                 {tournament.status === "OPEN" && (
                     <button 
                         onClick={handleStartTournament}
@@ -309,6 +344,51 @@ function ControlRoomContent() {
                                     <input type="number" value={editPrizePool} onChange={e => setEditPrizePool(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
                                 </div>
                             </div>
+
+                            <div className="space-y-2">
+                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Status Management</p>
+                                <div className="relative">
+                                    <select
+                                        value={tournament.status}
+                                        onChange={async (e) => {
+                                            const target = e.target.value;
+                                            const current = tournament.status;
+                                            if (current === "UPCOMING" && target === "OPEN") {
+                                                if (!confirm("Open registration? Players will be able to join.")) { e.target.value = current; return; }
+                                                handleOpenRegistration();
+                                            } else if (current === "OPEN" && target === "ONGOING") {
+                                                if (!confirm("Initiate combat? No more players can join after this.")) { e.target.value = current; return; }
+                                                handleStartTournament();
+                                            } else if (current === "ONGOING" && target === "COMPLETED") {
+                                                if (!confirm("Mark tournament as completed?")) { e.target.value = current; return; }
+                                                const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.COMPLETE(tournamentId!), { method: "PATCH" });
+                                                if (res.ok) { setMessage("Tournament completed!"); fetchData(); }
+                                                else { const err = await res.json(); setMessage(err.message || "Failed"); }
+                                            } else {
+                                                setMessage("Cannot reverse tournament status");
+                                                e.target.value = current;
+                                            }
+                                        }}
+                                        className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs font-black text-foreground uppercase tracking-tight focus:outline-none focus:border-primary transition-all rounded-xl appearance-none cursor-pointer"
+                                    >
+                                        {["UPCOMING", "OPEN", "ONGOING", "COMPLETED"].map(s => {
+                                            const stages = ["UPCOMING", "OPEN", "ONGOING", "COMPLETED"];
+                                            const currentIdx = stages.indexOf(tournament.status);
+                                            const thisIdx = stages.indexOf(s);
+                                            const isDisabled = thisIdx < currentIdx || thisIdx > currentIdx + 1;
+                                            return (
+                                                <option key={s} value={s} disabled={isDisabled}>
+                                                    {s}{s === tournament.status ? " (CURRENT)" : ""}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7"/></svg>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" className="w-full py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:brightness-110 transition-all font-poppins">Commit Specs</button>
                         </form>
                     ) : (
@@ -334,6 +414,14 @@ function ControlRoomContent() {
                 </div>
 
                 {/* Tactical Management */}
+                {tournament.status === "UPCOMING" && (
+                    <div className="bg-yellow-500/5 border border-yellow-500/20 p-6 rounded-[2.5rem] flex items-start gap-3">
+                        <svg className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                        <p className="text-[9px] text-yellow-500/70 font-black uppercase tracking-widest leading-relaxed">
+                            Change status to OPEN above to unlock Deployment Tools and allow players to join.
+                        </p>
+                    </div>
+                )}
                 {tournament.status === "OPEN" && (
                     <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[2.5rem] space-y-8">
                         <h3 className="text-sm font-black uppercase tracking-widest text-foreground border-b border-foreground/10 pb-4 font-poppins">Deployment Tools</h3>
@@ -347,24 +435,25 @@ function ControlRoomContent() {
                         </div>
 
                         <div className="space-y-4">
-                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Invite Authorized User</p>
+                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Invite Player</p>
                             <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none">
                                 <option value="">SELECT PLAYER</option>
                                 {allUsers.filter(u => !tournament.participants.some(p => p.userId === u.id)).map(u => (
                                     <option key={u.id} value={u.id}>{(u.username || (u as any).guestName || "Unknown User").toUpperCase()}</option>
                                 ))}
                              </select>
-
-                            <button onClick={() => selectedUserId && handleJoin(selectedUserId)} className="w-full py-4 bg-foreground/10 text-foreground font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-foreground hover:text-background transition-all font-poppins">Send Invitation</button>
+                            <button onClick={() => selectedUserId && handleJoin(selectedUserId)} className="w-full py-4 bg-foreground/10 text-foreground font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-foreground hover:text-background transition-all font-poppins">Invite Player</button>
                         </div>
 
                         {tournament.participants.length < tournament.maxPlayers && (
-                            <button 
-                                onClick={handleFillWithGuests}
-                                className="w-full py-4 border border-foreground/10 text-foreground/40 hover:text-primary hover:border-primary font-black text-[9px] uppercase tracking-[0.2em] rounded-xl transition-all font-poppins"
-                            >
-                                Bulk Deployment ({tournament.maxPlayers - tournament.participants.length} Slots)
-                            </button>
+                            <div className="space-y-4 pt-4 border-t border-foreground/10">
+                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Batch Summon Guests</p>
+                                <div className="flex gap-2">
+                                    <input type="number" min="1" max={tournament.maxPlayers - tournament.participants.length} placeholder="NUMBER" value={batchGuestCount} onChange={e => setBatchGuestCount(e.target.value === "" ? "" : Number(e.target.value))} className="w-24 h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
+                                    <button onClick={handleBatchAddGuests} className="flex-1 h-12 bg-primary/10 border border-primary/20 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all rounded-xl">Add Guests</button>
+                                </div>
+                                <p className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest text-right">Max allowed: {tournament.maxPlayers - tournament.participants.length}</p>
+                            </div>
                         )}
                     </div>
                 )}

@@ -7,8 +7,6 @@ import { authenticatedFetch, API_ENDPOINTS } from "../../utils/api";
 import { Match, Round, LeaderboardEntry } from "./types";
 import EliminationLayout from "./Formats/EliminationLayout";
 import RoundTableLayout from "./Formats/RoundTableLayout";
-import DesktopView from "./device/DesktopView";
-import MobileView from "./device/MobileView";
 
 function BracketViewContent() {
   const searchParams = useSearchParams();
@@ -23,17 +21,8 @@ function BracketViewContent() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const [scoringMatch, setScoringMatch] = useState<Match | null>(null);
-  const [scoringPosition, setScoringPosition] = useState<{x: number, y: number} | null>(null);
   const [scoringNote, setScoringNote] = useState("");
   const [maximizedPanel, setMaximizedPanel] = useState<"TERMINAL" | "STANDINGS" | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     if (tournamentId) {
@@ -81,14 +70,26 @@ function BracketViewContent() {
     setLogs((prev) => [newLog, ...prev]);
   };
 
+  const handleStartTournament = async () => {
+      if (!confirm("Initiate Combat? This will generate the final bracket and lock registration.")) return;
+      try {
+          const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
+          if (res.ok) {
+              addLog("ARENA START", "COMBAT INITIATED");
+              fetchTournamentData();
+          } else {
+              const err = await res.json();
+              addLog("ERROR", err.message || "START FAILED");
+          }
+      } catch (error) {
+          addLog("ERROR", "UPLINK FAILED");
+      }
+  };
+
   const handleScoreMatch = async (winnerId: string | null) => {
     if (!isAdmin || !scoringMatch || updating) return;
 
     const matchId = scoringMatch.id;
-    const p1Name = scoringMatch.player1?.guestName || scoringMatch.player1?.username || "TBD";
-    const p2Name = scoringMatch.player2?.guestName || scoringMatch.player2?.username || "TBD";
-    const winnerName = winnerId === scoringMatch.player1?.id ? p1Name : winnerId === scoringMatch.player2?.id ? p2Name : null;
-
     setUpdating(matchId);
     try {
       const res = await authenticatedFetch(API_ENDPOINTS.MATCHES.SUBMIT(matchId), {
@@ -98,9 +99,8 @@ function BracketViewContent() {
       });
 
       if (res.ok) {
-        addLog(`MATCH COMPLETED`, winnerName ? `${winnerName.toUpperCase()} DEFEATED OPPONENT` : `MATCH ENDED IN DRAW: ${p1Name} VS ${p2Name}`);
+        addLog(`MATCH SCORED`, `TERMINAL UPDATE RECEIVED`);
         setScoringMatch(null);
-        setScoringPosition(null);
         setScoringNote("");
         await fetchTournamentData();
       } else {
@@ -112,11 +112,6 @@ function BracketViewContent() {
     } finally {
       setUpdating(null);
     }
-  };
-
-  const openScoring = (match: Match, pos?: {x: number, y: number}) => {
-    setScoringMatch(match);
-    if (pos) setScoringPosition(pos);
   };
 
   if (loading && !tournament) {
@@ -133,10 +128,9 @@ function BracketViewContent() {
   const isElimination = tournament?.format === "SINGLE_ELIMINATION" || tournament?.format === "DOUBLE_ELIMINATION";
 
   return (
-    <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
-      <Navbar />
-      
+    <div className="min-h-screen w-full bg-background font-questrial flex flex-col">
       <div className="w-full px-4 md:px-8 py-12 mx-auto space-y-12">
+        <div className="h-screen">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-foreground/5 pb-8">
             <div className="flex items-center gap-6">
@@ -162,44 +156,47 @@ function BracketViewContent() {
                     </div>
                 </div>
             </div>
+
+            <div className="flex gap-4">
+                {isAdmin && tournament?.status === "OPEN" && (
+                    <button 
+                        onClick={handleStartTournament}
+                        className="px-8 py-3 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
+                    >
+                        Initiate Combat
+                    </button>
+                )}
+            </div>
         </div>
 
         {/* Bracket Area */}
-        {/* DO NOT MODIFY THIS HEIGHT WITHOUT EXPLICIT USER INSTRUCTION */}
-        <main className="h-[65vh] overflow-hidden">
-            {isMobile ? (
-                <div className="h-full overflow-y-auto no-scrollbar">
-                    <MobileView 
-                        tournament={tournament}
-                        leaderboard={leaderboard}
-                        isAdmin={isAdmin}
-                        updating={updating}
-                        onOpenScoring={openScoring}
-                        addLog={addLog}
-                    />
-                </div>
-            ) : (
-                <DesktopView 
+        <main className="h-[50%]">
+            {isElimination ? (
+                <EliminationLayout 
                     tournament={tournament}
                     leaderboard={leaderboard}
                     isAdmin={isAdmin}
                     updating={updating}
-                    onOpenScoring={openScoring}
-                    addLog={addLog}
+                    onOpenScoring={setScoringMatch}
+                />
+            ) : (
+                <RoundTableLayout 
+                    tournament={tournament}
+                    leaderboard={leaderboard}
+                    isAdmin={isAdmin}
+                    updating={updating}
+                    onOpenScoring={setScoringMatch}
                 />
             )}
         </main>
-
+    </div>
         <footer className="mt-24 grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Terminal Column */}
             <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[3rem] group/panel relative">
                 <div className="flex justify-between items-center mb-6 border-b border-foreground/10 pb-4">
                     <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins">Terminal Logs</h3>
                     <button 
-                        onClick={() => {
-                            setMaximizedPanel("TERMINAL");
-                            addLog("UI_COMMAND", "TELEMETRY EXPANDED TO FULLSCREEN");
-                        }}
+                        onClick={() => setMaximizedPanel("TERMINAL")}
                         className="p-2 hover:bg-primary/10 rounded-lg text-foreground/20 hover:text-primary transition-all"
                         title="MAXIMIZE"
                     >
@@ -228,10 +225,7 @@ function BracketViewContent() {
                 <div className="flex justify-between items-center mb-6 border-b border-foreground/10 pb-4">
                     <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins">Live Standings</h3>
                     <button 
-                        onClick={() => {
-                            setMaximizedPanel("STANDINGS");
-                            addLog("UI_COMMAND", "STANDINGS EXPANDED TO FULLSCREEN");
-                        }}
+                        onClick={() => setMaximizedPanel("STANDINGS")}
                         className="p-2 hover:bg-primary/10 rounded-lg text-foreground/20 hover:text-primary transition-all"
                         title="MAXIMIZE"
                     >
@@ -338,58 +332,43 @@ function BracketViewContent() {
         </div>
       )}
 
-      {/* Scoring Console (Full-Height Right Drawer for Desktop, Full-Screen for Mobile) */}
+      {/* Scoring Modal */}
       {scoringMatch && (
-        <div 
-            className="fixed inset-0 z-[70] flex items-center justify-center lg:justify-end animate-in fade-in duration-300 pointer-events-none"
-        >
-          {/* Backdrop close listener */}
-          <div className="absolute inset-0 pointer-events-auto" onClick={() => { setScoringMatch(null); setScoringPosition(null); }} />
-          
-          <div 
-            className="w-full max-w-md lg:max-w-sm h-fit lg:h-screen bg-[#111] border-primary/20 lg:border-l lg:shadow-[-50px_0_100px_rgba(0,0,0,0.9)] p-8 lg:p-12 relative flex flex-col justify-center animate-in slide-in-from-right duration-500 lg:rounded-none rounded-[3rem] pointer-events-auto"
-          >
-            <button onClick={() => { setScoringMatch(null); setScoringPosition(null); }} className="absolute top-8 right-8 text-foreground/20 hover:text-white transition-all font-black text-xl font-poppins">✕</button>
-            
-            <div className="mb-10 text-center lg:text-left">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in zoom-in duration-500">
+          <div className="w-full max-w-md bg-background border border-primary/50 rounded-[3rem] p-12 shadow-2xl relative">
+            <button onClick={() => setScoringMatch(null)} className="absolute top-10 right-10 text-foreground/20 hover:text-white transition-all font-black text-xl font-poppins">✕</button>
+            <div className="mb-10 text-center">
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em] font-poppins mb-4 block">Manual Override</span>
-                <h2 className="text-2xl lg:text-3xl font-black text-foreground uppercase tracking-tight font-poppins">Combat Results</h2>
-                <p className="text-[10px] text-foreground/40 uppercase tracking-widest mt-2">Update status for uplink telemetry</p>
+                <h2 className="text-3xl font-black text-foreground uppercase tracking-tight font-poppins">Score Combat</h2>
+                <p className="text-[10px] text-foreground/40 uppercase tracking-widest mt-2">Force advancement for available combatants</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <button 
                   onClick={() => handleScoreMatch(scoringMatch.player1?.id || null)}
                   disabled={!scoringMatch.player1}
-                  className={`w-full py-6 bg-foreground/5 border border-white/5 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player1 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
+                  className={`w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player1 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                 >
-                  <span className="font-black uppercase tracking-widest font-poppins text-xs lg:text-sm">{scoringMatch.player1?.username || (scoringMatch.player1 as any)?.guestName || "TBD"}</span>
-                  <span className="text-[9px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest transition-all">WINNER</span>
+                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player1?.username || (scoringMatch.player1 as any)?.guestName || "TBD"}</span>
+                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">ADVANCE</span>
                 </button>
 
-                <div className="flex items-center gap-4 py-2">
-                    <div className="h-px flex-1 bg-white/5" />
-                    <span className="text-[8px] font-black text-foreground/10 uppercase tracking-widest">VS</span>
-                    <div className="h-px flex-1 bg-white/5" />
-                </div>
+                <button 
+                  onClick={() => handleScoreMatch(null)}
+                  className="w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-foreground/40 text-foreground/40 rounded-2xl transition-all group px-8 flex justify-between items-center"
+                >
+                  <span className="font-black uppercase tracking-widest font-poppins">STALEMATE</span>
+                  <span className="text-[10px] font-black text-foreground/20 opacity-0 group-hover:opacity-100 uppercase tracking-widest">DRAW</span>
+                </button>
 
                 <button 
                   onClick={() => handleScoreMatch(scoringMatch.player2?.id || null)}
                   disabled={!scoringMatch.player2}
-                  className={`w-full py-6 bg-foreground/5 border border-white/5 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player2 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
+                  className={`w-full py-6 bg-foreground/5 border border-foreground/10 hover:border-primary text-foreground rounded-2xl transition-all group px-8 flex justify-between items-center ${!scoringMatch.player2 ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                 >
-                  <span className="font-black uppercase tracking-widest font-poppins text-xs lg:text-sm">{scoringMatch.player2?.username || (scoringMatch.player2 as any)?.guestName || "TBD"}</span>
-                  <span className="text-[9px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest transition-all">WINNER</span>
+                  <span className="font-black uppercase tracking-widest font-poppins">{scoringMatch.player2?.username || (scoringMatch.player2 as any)?.guestName || "TBD"}</span>
+                  <span className="text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 uppercase tracking-widest">ADVANCE</span>
                 </button>
-
-                <div className="mt-8 pt-8 border-t border-white/5">
-                    <button 
-                      onClick={() => handleScoreMatch(null)}
-                      className="w-full py-4 bg-transparent border border-dashed border-white/5 hover:border-foreground/20 text-foreground/20 hover:text-foreground/40 rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest"
-                    >
-                      Clear Results / Draw
-                    </button>
-                </div>
             </div>
           </div>
         </div>

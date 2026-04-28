@@ -14,7 +14,7 @@ function TournamentViewContent() {
   const tournamentId = searchParams.get("id");
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [user, setUser] = useState<{ sub: string } | null>(null);
+  const [user, setUser] = useState<{ sub: string; id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
@@ -82,9 +82,12 @@ function TournamentViewContent() {
 
   if (!tournament) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-black uppercase tracking-widest">Arena Not Found</div>;
 
-  const isJoined = tournament.participants.some(p => p.userId === user?.sub);
+  // The backend JWT uses `sub` as the user ID, so we check both fields for safety
+  const myId = user?.sub || (user as any)?.id;
+  const isJoined = tournament.participants.some(p => p.userId === myId);
   const isFull = tournament.participants.length >= tournament.maxPlayers;
-  const canJoin = tournament.status === "OPEN" && !isJoined && !isFull;
+  const registrationOpen = tournament.status === "OPEN" || tournament.status === "UPCOMING";
+  const canJoin = registrationOpen && !isJoined && !isFull && !!user;
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
@@ -141,7 +144,7 @@ function TournamentViewContent() {
                         </button>
                     ) : (
                         <div className="w-full py-6 bg-foreground/10 text-foreground/40 text-center font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl font-poppins">
-                            {isJoined ? "YOU ARE ENLISTED" : isFull ? "ARENA CAPACITY REACHED" : "REGISTRATION CLOSED"}
+                            {isJoined ? "YOU ARE ENLISTED" : isFull ? "ARENA CAPACITY REACHED" : `STATUS: ${tournament.status}`}
                         </div>
                     )}
 

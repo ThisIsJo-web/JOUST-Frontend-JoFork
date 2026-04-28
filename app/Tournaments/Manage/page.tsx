@@ -19,6 +19,7 @@ export default function ManageTournaments() {
     const [maxPlayers, setMaxPlayers] = useState(16);
     const [prizePool, setPrizePool] = useState<number | "">("");
     const [isPrivate, setIsPrivate] = useState(false);
+    const [startNow, setStartNow] = useState(false);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -69,6 +70,7 @@ export default function ManageTournaments() {
                     maxPlayers: Number(maxPlayers),
                     prizePool: prizePool === "" ? null : Number(prizePool),
                     isPrivate,
+                    startNow,
                     createdById: user.sub,
                 }),
             });
@@ -81,6 +83,7 @@ export default function ManageTournaments() {
                 setMaxPlayers(16);
                 setPrizePool("");
                 setIsPrivate(false);
+                setStartNow(false);
                 // Refresh list
                 const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);
                 if (res.ok) setTournaments(await res.json());
@@ -177,10 +180,14 @@ export default function ManageTournaments() {
                                 <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Prize Pool (₱)</label>
                                 <input type="number" value={prizePool} onChange={(e) => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="OPTIONAL" className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
                             </div>
-                            <div className="flex items-end pb-4">
+                            <div className="flex flex-col gap-4">
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="w-6 h-6 accent-primary bg-background border-foreground/10 rounded-lg" />
                                     <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-primary transition-colors">Private Arena</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" checked={startNow} onChange={(e) => setStartNow(e.target.checked)} className="w-6 h-6 accent-green-500 bg-background border-foreground/10 rounded-lg" />
+                                    <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-green-500 transition-colors">Start Now (Open Registration)</span>
                                 </label>
                             </div>
                             <div className="flex items-end">
