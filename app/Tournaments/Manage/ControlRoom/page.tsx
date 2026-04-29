@@ -44,7 +44,7 @@ function ControlRoomContent() {
         const meData = await meRes.json();
         setUser(meData);
         if (meData.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")) {
-          const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.USERS);
+          const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.REGISTERED_USERS);
           if (usersRes.ok) setAllUsers(await usersRes.json());
         } else {
             router.push("/Tournaments");
@@ -162,12 +162,15 @@ function ControlRoomContent() {
     setMessage(`Deploying ${countToAdd} guests...`);
     
     try {
+      const prefixes = ["NEON", "CYBER", "VOLT", "NULL", "VOID", "HEX", "CODE", "DARK", "SHADOW", "GLITCH"];
+      const suffixes = ["WRAITH", "RUNNER", "PUNK", "GHOST", "BLADE", "SOUL", "CORE", "SHARD", "WAVE", "NET"];
+      
       for (let i = 0; i < countToAdd; i++) {
-        const guestName = `Guest ${tournament.participants.length + i + 1}`;
+        const randomName = `${prefixes[Math.floor(Math.random() * prefixes.length)]}_${suffixes[Math.floor(Math.random() * suffixes.length)]}_${Math.floor(1000 + Math.random() * 9000)}`;
         await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ guestName }),
+            body: JSON.stringify({ guestName: randomName }),
         });
       }
       setBatchGuestCount("");
