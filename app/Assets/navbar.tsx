@@ -58,6 +58,11 @@ export default function Navbar() {
         { name: "Leaderboards", href: "/Leaderboards" },
     ];
 
+    const isAdmin = user?.roles?.includes('ADMIN');
+    if (isAdmin) {
+        navLinks.push({ name: "Admin", href: "/Admin" });
+    }
+
     return (
         <>
             <header className="w-full h-20 px-6 md:px-12 flex items-center bg-neutral-800 sticky top-0 z-50 border-b border-foreground/5 justify-between">

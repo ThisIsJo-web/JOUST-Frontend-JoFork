@@ -72,9 +72,28 @@ function LeaderboardsContent() {
         {/* Main Display Area */}
         <main className="flex-1 min-h-0 flex flex-col">
             {loading ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                    <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Syncing Global Telemetry</p>
+                <div className="bg-foreground/5 border border-foreground/5 rounded-[3rem] overflow-hidden flex-1 flex flex-col animate-pulse">
+                    <div className="px-8 bg-background/50 border-b border-foreground/10 h-20 flex items-center">
+                         <div className="grid grid-cols-6 w-full gap-8">
+                             <div className="h-4 bg-foreground/10 rounded w-12" />
+                             <div className="h-4 bg-foreground/10 rounded w-32" />
+                             <div className="h-4 bg-foreground/10 rounded w-24 mx-auto" />
+                             <div className="h-4 bg-foreground/10 rounded w-24 mx-auto" />
+                             <div className="h-4 bg-foreground/10 rounded w-24 mx-auto" />
+                             <div className="h-4 bg-foreground/10 rounded w-24 ml-auto" />
+                         </div>
+                    </div>
+                    <div className="p-8 space-y-8">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="flex items-center justify-between border-b border-white/5 pb-8">
+                                <div className="h-8 bg-foreground/10 rounded w-16" />
+                                <div className="h-8 bg-foreground/10 rounded w-48" />
+                                <div className="h-8 bg-foreground/10 rounded w-24 hidden md:block" />
+                                <div className="h-8 bg-foreground/10 rounded w-16 hidden md:block" />
+                                <div className="h-8 bg-foreground/10 rounded w-24" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : error ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4">

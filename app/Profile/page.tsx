@@ -93,16 +93,26 @@ function ProfileContent() {
     fetchProfileData();
   }, [profileId, router]);
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-primary font-black uppercase tracking-widest text-sm">Loading Uplink...</p>
+        <main className="flex-1 flex flex-col items-center px-4 py-12 sm:px-8 w-full animate-pulse">
+          <div className="w-full max-w-7xl space-y-8">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8 bg-foreground/5 border border-foreground/10 p-10 rounded-none">
+              <div className="w-40 h-40 bg-foreground/10" />
+              <div className="flex-1 space-y-4">
+                <div className="h-16 bg-foreground/10 w-3/4 rounded-xl" />
+                <div className="h-4 bg-foreground/10 w-1/4 rounded-md" />
+                <div className="h-4 bg-foreground/10 w-1/2 rounded-md mt-8" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="h-[400px] bg-foreground/5 border border-foreground/10 rounded-none" />
+              <div className="h-[400px] bg-foreground/5 border border-foreground/10 rounded-none" />
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }

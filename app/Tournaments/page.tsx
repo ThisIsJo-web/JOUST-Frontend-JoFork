@@ -8,6 +8,7 @@ import TournamentCard from "./components/TournamentCard";
 import TournamentSelectionList from "./components/TournamentSelectionList";
 
 import Link from "next/link";
+import { CardSkeleton, FeaturedSkeleton } from "./components/Skeleton";
 
 export default function TournamentPage() {
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -52,6 +53,8 @@ export default function TournamentPage() {
                 if (activeTournaments.length > 0) {
                     setActiveId(activeTournaments[0].id);
                 }
+            } else {
+                console.error("Failed to fetch tournaments:", res.status, res.statusText);
             }
         } catch (error) {
             console.error("Failed to fetch tournaments:", error);
@@ -71,12 +74,38 @@ export default function TournamentPage() {
         }
     };
 
-    if (loading) {
+    if (loading && tournaments.length === 0) {
         return (
-            <div className="min-h-screen w-full bg-background flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                    <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Initializing Arena</p>
+            <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
+                <Navbar />
+                <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
+                    {/* Featured Skeleton */}
+                    <div className="mb-24">
+                        <div className="hidden lg:flex flex-row gap-12">
+                            <div className="w-full lg:w-[75%]">
+                                <FeaturedSkeleton isMain={true} />
+                            </div>
+                            <div className="w-full lg:w-[25%] flex flex-col gap-6">
+                                <div className="h-4 w-24 bg-primary/20 rounded-full mb-2" />
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-20 w-full bg-foreground/5 rounded-2xl animate-pulse" />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="lg:hidden">
+                            <FeaturedSkeleton />
+                        </div>
+                    </div>
+
+                    {/* Grid Skeleton */}
+                    <div className="space-y-12">
+                        <div className="h-8 w-64 bg-foreground/10 rounded-lg animate-pulse" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                            {[1, 2, 3, 4].map(i => (
+                                <CardSkeleton key={i} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         );
