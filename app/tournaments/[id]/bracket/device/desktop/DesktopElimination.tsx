@@ -29,8 +29,8 @@ export default function DesktopElimination({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
-    // Zoom state (0.8 default do not change without asking
-    const [zoom, setZoom] = useState(0.8);
+    // Zoom state (0.6 default)
+    const [zoom, setZoom] = useState(0.6);
 
     // 2D Draggable state
     const [isDragging, setIsDragging] = useState(false);
@@ -53,7 +53,7 @@ export default function DesktopElimination({
         ...losersRounds.map((r: Round) => r.matches.length),
         1
     );
-    const internalCanvasHeight = Math.max(1000, maxMatches * 220);
+    const internalCanvasHeight = Math.max(1000, maxMatches * 180);
 
     // Determine champion name (prioritize snapshots over leaderboard fallback)
     const getChampionDisplay = () => {
@@ -211,7 +211,7 @@ export default function DesktopElimination({
         const h = internalCanvasHeight;
 
         return (
-            <div key={round.id} id={`round-${round.id}`} className="flex flex-col gap-8 shrink-0 w-96 relative" style={{ height: `${h}px` }}>
+            <div key={round.id} id={`round-${round.id}`} className="flex flex-col gap-8 shrink-0 w-64 lg:w-72 relative" style={{ height: `${h}px` }}>
                 <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 text-center font-poppins shrink-0">
                     {getRoundLabel(round, totalInGroup)}
                 </h2>
@@ -337,37 +337,38 @@ export default function DesktopElimination({
                     </select>
                 </div>
 
-                <div className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl border border-white/5">
-                    <div className="flex items-center gap-1 px-2 border-r border-white/5">
-                        {[0.8, 1, 1.2].map((lvl) => (
-                            <button
-                                key={lvl}
-                                onClick={() => {
-                                    setZoom(lvl);
-                                    addLog("UI_COMMAND", `OPTICAL MAGNIFICATION SET TO ${lvl * 100}%`);
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${zoom === lvl ? 'bg-primary text-white' : 'text-foreground/20 hover:text-foreground/40'}`}
-                            >
-                                {lvl === 0.8 ? '80%' : lvl === 1 ? '100%' : '120%'}
-                            </button>
-                        ))}
+                <div className="flex items-center gap-6 bg-foreground/5 p-1.5 rounded-2xl border border-white/5">
+                    <div className="flex items-center gap-3 px-2 border-r border-white/5">
+                        <button
+                            onClick={() => {
+                                const newZoom = Math.max(0.2, zoom - 0.1);
+                                setZoom(newZoom);
+                                addLog("UI_COMMAND", `MAGNIFICATION REDUCED TO ${Math.round(newZoom * 100)}%`);
+                            }}
+                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg active:scale-90"
+                        >-</button>
+                        <div className="flex flex-col items-center px-2">
+                            <span className="text-[10px] font-black text-white leading-none">{Math.round(zoom * 100)}%</span>
+                            <span className="text-[6px] font-black text-neutral-500 uppercase tracking-widest mt-1">Scale</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const newZoom = Math.min(2, zoom + 0.1);
+                                setZoom(newZoom);
+                                addLog("UI_COMMAND", `MAGNIFICATION INCREASED TO ${Math.round(newZoom * 100)}%`);
+                            }}
+                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg active:scale-90"
+                        >+</button>
                     </div>
                     <button
                         onClick={() => {
-                            const newZoom = Math.max(0.2, zoom - 0.1);
-                            setZoom(newZoom);
-                            addLog("UI_COMMAND", `MAGNIFICATION REDUCED TO ${Math.round(newZoom * 100)}%`);
+                            setZoom(0.6);
+                            addLog("UI_COMMAND", "MAGNIFICATION RESET TO OPTIMAL 60%");
                         }}
-                        className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                    >-</button>
-                    <button
-                        onClick={() => {
-                            const newZoom = Math.min(2, zoom + 0.1);
-                            setZoom(newZoom);
-                            addLog("UI_COMMAND", `MAGNIFICATION INCREASED TO ${Math.round(newZoom * 100)}%`);
-                        }}
-                        className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                    >+</button>
+                        className="px-4 py-2 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-primary/20 transition-all"
+                    >
+                        Reset
+                    </button>
                 </div>
             </div>
 

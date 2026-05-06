@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { API_ENDPOINTS } from "../../utils/api";
+import { authenticatedFetch, API_ENDPOINTS } from "../../utils/api";
 import { Tournament } from "../../tournaments/types";
 
 export default function TournamentPreview() {
@@ -11,7 +11,7 @@ export default function TournamentPreview() {
   useEffect(() => {
     async function fetchTournaments() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINTS.TOURNAMENTS}`);
+        const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);
         if (res.ok) {
           const data = await res.json();
           // Filter only relevant ones for the preview (OPEN, UPCOMING, PENDING)

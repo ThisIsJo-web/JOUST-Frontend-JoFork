@@ -11,6 +11,10 @@ interface MobileCombatFeedProps {
     updating: string | null;
     onOpenScoring: (match: Match) => void;
     addLog: (action: string, details?: string) => void;
+    trackedUserId: string | null;
+    setTrackedUserId: (id: string | null) => void;
+    activePhase: number;
+    setActivePhase: (idx: number) => void;
 }
 
 export default function MobileCombatFeed({
@@ -19,10 +23,12 @@ export default function MobileCombatFeed({
     isAdmin,
     updating,
     onOpenScoring,
-    addLog
+    addLog,
+    trackedUserId,
+    setTrackedUserId,
+    activePhase,
+    setActivePhase
 }: MobileCombatFeedProps) {
-    const [activePhase, setActivePhase] = useState<number>(0);
-    const [trackedUserId, setTrackedUserId] = useState<string | null>(null);
 
     const rounds = tournament?.rounds || [];
     const sortedRounds = useMemo(() => {
@@ -38,11 +44,52 @@ export default function MobileCombatFeed({
         return `Round ${num}`;
     };
 
+    const [trackIndex, setTrackIndex] = useState(0);
+
+    const trackedMatches = useMemo(() => {
+        if (!trackedUserId) return [];
+        const allMatches: Match[] = [];
+        sortedRounds.forEach((r: Round) => {
+            r.matches.forEach((m: Match) => {
+                if (m.player1?.id === trackedUserId || m.player2?.id === trackedUserId) {
+                    allMatches.push(m);
+                }
+            });
+        });
+        return allMatches;
+    }, [trackedUserId, sortedRounds]);
+
+    const navigateToTrackedMatch = (idx: number, idOverride?: string) => {
+        const id = idOverride || trackedUserId;
+        if (!id) return;
+        
+        const match = trackedMatches[idx];
+        if (!match) return;
+
+        // Find which phase this match is in
+        const phaseIdx = sortedRounds.findIndex((r: Round) => r.matches.some((m: Match) => m.id === match.id));
+        if (phaseIdx !== -1 && phaseIdx !== activePhase) {
+            setActivePhase(phaseIdx);
+        }
+
+        // Scroll the match into view
+        setTimeout(() => {
+            const element = document.getElementById(`match-mobile-${match.id}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                setTrackIndex(idx);
+            }
+        }, 150);
+    };
+
     const handleTrackParticipant = (id: string | null) => {
         setTrackedUserId(id);
         if (id) {
             const user = leaderboard.find(u => u.userId === id);
             addLog("TRACKING", `MONITORING: ${user?.username}`);
+            // Reset index and auto-scroll
+            setTrackIndex(0);
+            setTimeout(() => navigateToTrackedMatch(0, id), 200);
         }
     };
 
@@ -54,10 +101,60 @@ export default function MobileCombatFeed({
         }
     };
 
+    const getChampionDisplay = () => {
+        if (tournament?.winner) return tournament.winner.username || tournament.winner.guestName;
+        if (tournament?.winnerName) return tournament.winnerName;
+
+        // Fallback to searching rounds if status is completed
+        if (tournament?.status === "COMPLETED") {
+            const allMatches = sortedRounds.flatMap(r => r.matches);
+            const finalMatch = allMatches.find(m => !m.nextMatchId && m.status === 'COMPLETED');
+            if (finalMatch) {
+                return finalMatch.winner?.username || finalMatch.winner?.guestName || finalMatch.winnerName || "Unknown Champion";
+            }
+        }
+
+        return leaderboard.length > 0 ? leaderboard[0]?.username : "AWAITING RESULTS";
+    };
+
     return (
-        <div className="h-full flex flex-col gap-6 px-4 pb-20 overflow-y-auto no-scrollbar">
+        <div className="h-full flex flex-col gap-6 overflow-hidden relative">
+            {/* Mobile Tracker Overlay */}
+            {trackedUserId && trackedMatches.length > 0 && (
+                <div className="fixed top-24 left-4 right-4 z-[70] animate-in slide-in-from-top-8 duration-500">
+                    <div className="bg-primary/95 backdrop-blur-xl border border-white/20 rounded-2xl p-4 shadow-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary font-black text-xs">
+                                {leaderboard.find(u => u.userId === trackedUserId)?.username?.[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <p className="text-[7px] font-black text-white/60 uppercase tracking-widest leading-none">Tracking</p>
+                                <p className="text-[10px] font-black text-white uppercase tracking-tight">{leaderboard.find(u => u.userId === trackedUserId)?.username}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => navigateToTrackedMatch(Math.max(0, trackIndex - 1))}
+                                disabled={trackIndex === 0}
+                                className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
+                            >
+                                ←
+                            </button>
+                            <span className="text-[9px] font-black text-white w-12 text-center">{trackIndex + 1} / {trackedMatches.length}</span>
+                            <button 
+                                onClick={() => navigateToTrackedMatch(Math.min(trackedMatches.length - 1, trackIndex + 1))}
+                                disabled={trackIndex === trackedMatches.length - 1}
+                                className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
+                            >
+                                →
+                            </button>
+                            <button onClick={() => setTrackedUserId(null)} className="ml-2 w-8 h-8 flex items-center justify-center text-white/40 font-black text-xs">✕</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Mobile Tactical Header */}
-            <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-md pt-4 pb-2 space-y-4 border-b border-white/5">
+            <div className="bg-background/95 backdrop-blur-md px-4 pt-4 pb-2 space-y-4 border-b border-white/5 shrink-0">
                 <div className="flex items-center gap-3">
                     <select 
                         value={trackedUserId || ""} 
@@ -71,8 +168,8 @@ export default function MobileCombatFeed({
                     </select>
                     <button 
                         onClick={() => {
-                            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                             addLog("NAV_COMMAND", "SCROLL TO LEADERBOARD");
+                            // In a horizontal view, we might not need this, but keeping it for context
                         }}
                         className="w-12 h-12 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center"
                     >
@@ -93,8 +190,8 @@ export default function MobileCombatFeed({
                 </div>
             </div>
 
-            {/* Combat Feed */}
-            <div className="space-y-4">
+            {/* Combat Feed - Horizontal Scroll */}
+            <div className="flex flex-col gap-4 px-4 overflow-hidden">
                 <div className="flex items-center justify-between">
                     <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins">
                         {activeRound ? getRoundLabel(activeRound) : "No Data"}
@@ -104,9 +201,12 @@ export default function MobileCombatFeed({
                     </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                    {activeRound?.matches.map((match: Match) => (
-                        <div key={match.id} className="w-full">
+                <div className="grid grid-flow-col grid-rows-2 gap-x-4 gap-y-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-8">
+                    {activeRound?.matches.map((match: Match, i: number) => (
+                        <div key={match.id} id={`match-mobile-${match.id}`} className="shrink-0 w-[42vw] snap-start flex flex-col gap-2 [&>div]:w-full">
+                            <div className="flex justify-between items-center px-1">
+                                <span className="text-[7px] font-black text-foreground/20 uppercase tracking-widest">#{i+1}</span>
+                            </div>
                             <MatchCard 
                                 match={match}
                                 onOpenScoring={() => onOpenScoring(match)}
@@ -118,22 +218,22 @@ export default function MobileCombatFeed({
                             />
                         </div>
                     ))}
-                </div>
-
-                {/* Champion Section */}
-                {activePhase === sortedRounds.length - 1 && (
-                    <div className="mt-12 pt-12 border-t border-white/5 flex flex-col items-center gap-6">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em]">Tournament Champion</span>
-                        <div className={`w-full p-10 flex flex-col items-center justify-center gap-6 rounded-3xl ${tournament?.status === "COMPLETED" ? 'bg-primary text-white' : 'bg-foreground/5 border border-dashed border-white/10'}`}>
-                            <div className="w-16 h-16 rounded-full border-2 border-current flex items-center justify-center">
-                                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
+                    
+                    {/* Champion Section at end of scroll - spanning both rows */}
+                    {activePhase === sortedRounds.length - 1 && (
+                        <div className="row-span-2 shrink-0 w-[80vw] snap-center flex flex-col justify-center items-center gap-4 bg-primary/5 rounded-3xl border border-dashed border-primary/20 p-6">
+                            <span className="text-[9px] font-black text-primary uppercase tracking-[0.4em]">Tournament Champion</span>
+                            <div className={`w-full py-8 flex flex-col items-center justify-center gap-4 rounded-2xl ${tournament?.status === "COMPLETED" ? 'bg-primary text-white' : 'bg-white/5 border border-white/10'}`}>
+                                <div className="w-12 h-12 rounded-full border border-current flex items-center justify-center">
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
+                                </div>
+                                <span className="text-base font-black uppercase tracking-tighter">
+                                    {getChampionDisplay()}
+                                </span>
                             </div>
-                            <span className="text-xl font-black uppercase tracking-tighter">
-                                {tournament?.status === "COMPLETED" ? (leaderboard[0]?.username) : "AWAITING RESULTS"}
-                            </span>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

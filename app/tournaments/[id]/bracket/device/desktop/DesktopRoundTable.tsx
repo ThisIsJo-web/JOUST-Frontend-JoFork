@@ -21,98 +21,92 @@ export default function DesktopRoundTable({
     onOpenScoring,
     addLog
 }: DesktopRoundTableProps) {
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [startY, setStartY] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
-    const [scrollTop, setScrollTop] = useState(0);
-    const [dragDistance, setDragDistance] = useState(0);
+    const rounds: Round[] = tournament?.rounds || [];
+    const sortedRounds: Round[] = [...rounds].sort((a, b) => a.roundNumber - b.roundNumber);
+    
+    // Default to the latest ongoing round or the last round
+    const initialRound = sortedRounds.find(r => r.matches.some((m: Match) => m.status !== 'COMPLETED'))?.roundNumber 
+                       || sortedRounds[sortedRounds.length - 1]?.roundNumber 
+                       || 1;
+    
+    const [activeRound, setActiveRound] = useState<number>(initialRound);
 
-    const rounds = tournament?.rounds || [];
-    const sortedRounds = [...rounds].sort((a, b) => a.roundNumber - b.roundNumber);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!scrollContainerRef.current) return;
-        setIsDragging(true);
-        setStartX(e.clientX);
-        setStartY(e.clientY);
-        setScrollLeft(scrollContainerRef.current.scrollLeft);
-        setScrollTop(scrollContainerRef.current.scrollTop);
-        setDragDistance(0);
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !scrollContainerRef.current) return;
-        e.preventDefault();
-        const walkX = (e.clientX - startX) * 1.5;
-        const walkY = (e.clientY - startY) * 1.5;
-        scrollContainerRef.current.scrollLeft = scrollLeft - walkX;
-        scrollContainerRef.current.scrollTop = scrollTop - walkY;
-        setDragDistance(Math.max(Math.abs(e.clientX - startX), Math.abs(e.clientY - startY)));
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-    const handleMouseLeave = () => setIsDragging(false);
+    const currentRound: Round | undefined = sortedRounds.find(r => r.roundNumber === activeRound);
 
     return (
-        <div className="h-full flex flex-col gap-8 px-8 py-12">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <h2 className="text-xs font-black text-primary uppercase tracking-[0.4em] font-poppins">
-                    Round Table Command
-                </h2>
-                <div className="flex gap-4">
-                    <span className="text-[10px] font-black text-foreground/40 uppercase tracking-widest">
-                        Format: {tournament?.format}
-                    </span>
-                    <span className="text-[10px] font-black text-foreground/40 uppercase tracking-widest">
-                        Phases: {rounds.length}
+        <div className="h-full flex flex-col bg-neutral-950/20">
+            {/* Phase Tabs - Floating at top */}
+            <div className="flex gap-px overflow-x-auto no-scrollbar bg-white/5 border-b border-white/5">
+                {sortedRounds.map((round) => (
+                    <button
+                        key={round.id}
+                        onClick={() => setActiveRound(round.roundNumber)}
+                        className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all min-w-[140px] border-r border-white/5 relative group ${
+                            activeRound === round.roundNumber
+                            ? "bg-primary text-background"
+                            : "bg-transparent text-neutral-500 hover:bg-white/5 hover:text-neutral-300"
+                        }`}
+                    >
+                        Phase {round.roundNumber}
+                        {activeRound === round.roundNumber && (
+                            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/40" />
+                        )}
+                    </button>
+                ))}
+                <div className="flex-1 border-white/5" />
+                <div className="px-6 flex items-center">
+                    <span className="text-[8px] font-black text-neutral-600 uppercase tracking-widest italic">
+                        {tournament?.format.replace("_", " ")} TERMINAL
                     </span>
                 </div>
             </div>
 
-            <div 
-                ref={scrollContainerRef}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
-                className={`flex-1 min-h-0 overflow-auto custom-scrollbar ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'} pb-8`}
-            >
-                <div className="flex gap-16 min-w-max items-start">
-                    {sortedRounds.map((round: Round) => (
-                        <div 
-                            key={round.id} 
-                            className="flex flex-col gap-8 shrink-0 w-80 md:w-96"
-                        >
-                            <h2 className="text-[8px] font-black text-foreground/20 uppercase tracking-[0.5em] border-b border-foreground/5 pb-2 text-center font-poppins shrink-0">
-                                ROUND {round.roundNumber}
-                            </h2>
-                            <div className="flex flex-col gap-12 py-4">
-                                {round.matches.map((match: Match) => (
-                                    <div 
-                                        key={match.id} 
-                                        onClick={(e) => {
-                                            if (dragDistance > 5) return;
-                                            onOpenScoring(match, {x: e.clientX, y: e.clientY});
-                                            addLog("COMMAND", `SCORING MATCH IN ROUND ${round.roundNumber}`);
-                                        }}
-                                        className="shrink-0 flex justify-center"
-                                    >
-                                        <MatchCard 
-                                            match={match} 
-                                            onOpenScoring={() => {}} 
-                                            isAdmin={isAdmin}
-                                            isUpdating={updating === match.id}
-                                            leaderboard={leaderboard}
-                                            showPoints={tournament?.format === "SWISS"}
-                                        />
-                                    </div>
-                                ))}
+            {/* Active Round Matches */}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-8 py-6">
+                {currentRound ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-8 py-4">
+                        {currentRound.matches.map((match: Match, i: number) => (
+                            <div 
+                                key={match.id}
+                                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                                style={{ animationDelay: `${i * 50}ms` }}
+                            >
+                                <div className="mb-3 flex justify-between items-center">
+                                    <span className="text-[8px] font-black text-neutral-600 uppercase tracking-[0.3em]">
+                                        Engagement {(i + 1).toString().padStart(2, '0')}
+                                    </span>
+                                    {match.isBye && (
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest italic">
+                                            Tactical Bye
+                                        </span>
+                                    )}
+                                </div>
+                                <div 
+                                    onClick={(e) => {
+                                        onOpenScoring(match, {x: e.clientX, y: e.clientY});
+                                        addLog("COMMAND", `SCORING MATCH IN PHASE ${activeRound}`);
+                                    }}
+                                    className="cursor-pointer [&>div]:w-full"
+                                >
+                                    <MatchCard 
+                                        match={match} 
+                                        onOpenScoring={() => {}} 
+                                        isAdmin={isAdmin}
+                                        isUpdating={updating === match.id}
+                                        leaderboard={leaderboard}
+                                        showPoints={tournament?.format === "SWISS"}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-full flex items-center justify-center border border-dashed border-neutral-800 rounded-[2.5rem]">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-600 italic animate-pulse">
+                            Awaiting tactical data for this phase...
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

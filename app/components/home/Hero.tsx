@@ -65,6 +65,7 @@ export default function Hero({
             height={240} 
             alt="Hobby+ Logo" 
             className="mx-auto"
+            style={{ height: 'auto' }}
           />
         </div>
 

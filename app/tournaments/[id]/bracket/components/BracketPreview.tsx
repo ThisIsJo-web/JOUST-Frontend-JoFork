@@ -212,7 +212,7 @@ function MatchWrapper({ match, participants, isAdmin, onSwap, isRound1, topPos, 
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function BracketPreview({ tournament, isAdmin, currentUserId, tournamentId, onRefresh, addLog }: Props) {
   const [swapping, setSwapping] = useState(false);
-  const [zoom, setZoom] = useState(0.8);
+  const [zoom, setZoom] = useState(0.6);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const participants: RawParticipant[] = tournament?.participants ?? [];
@@ -221,7 +221,7 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
   const isElimination = format === "SINGLE_ELIMINATION" || format === "DOUBLE_ELIMINATION";
 
   const maxMatchesInRound = Math.max(...rounds.map(r => r.matches.length));
-  const canvasHeight = Math.max(800, maxMatchesInRound * 220);
+  const canvasHeight = Math.max(800, maxMatchesInRound * 180);
 
   const handleSwap = async (fromId: string, toId: string) => {
     if (!isAdmin || swapping) return;
@@ -255,22 +255,35 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
             {format.replace(/_/g, " ")} PREVIEW · {participants.length} UNITS
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl">
-             <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="w-8 h-8 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black">-</button>
-             <span className="text-[9px] font-black text-neutral-500 w-10 text-center">{Math.round(zoom * 100)}%</span>
-             <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="w-8 h-8 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black">+</button>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5">
+             <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black transition-all active:scale-90">-</button>
+             <div className="flex flex-col items-center px-2">
+               <span className="text-[10px] font-black text-white leading-none">{Math.round(zoom * 100)}%</span>
+               <span className="text-[6px] font-black text-neutral-500 uppercase tracking-widest mt-1">Scale</span>
+             </div>
+             <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black transition-all active:scale-90">+</button>
           </div>
+          <button onClick={() => setZoom(0.6)} className="px-4 py-2 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-primary/20 transition-all">Reset</button>
         </div>
       </div>
 
       {/* Canvas / List Area */}
       <div 
         ref={scrollContainerRef}
-        className={`h-[75vh] overflow-auto custom-scrollbar bg-black/40 rounded-[2.5rem] border border-white/5 relative ${!isElimination ? 'p-12' : ''}`}
+        className="h-[75vh] overflow-auto custom-scrollbar bg-black/40 rounded-[2.5rem] border border-white/5 relative"
       >
         {!isElimination ? (
-          <div className="max-w-4xl mx-auto space-y-12">
+          <div 
+            style={{ 
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top center',
+              width: '100%',
+              transition: 'transform 0.2s ease-out',
+              willChange: 'transform'
+            }}
+            className="p-12 max-w-4xl mx-auto space-y-12"
+          >
             <div className="flex flex-col gap-4">
                <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins">Initial Pairings (Round 1)</h2>
                <p className="text-neutral-500 text-xs font-questrial italic">In Swiss format, subsequent pairings are determined by win/loss records after each round completes.</p>
@@ -310,12 +323,12 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
               width: 'max-content',
               height: `${canvasHeight}px`
             }}
-            className="p-20 flex gap-24 items-start"
+            className="p-12 flex gap-12 items-start"
           >
             {rounds.map((round, rIndex) => (
-              <div key={round.id} className="relative h-full w-80 lg:w-96 flex flex-col items-center shrink-0"
+              <div key={round.id} className="relative h-full w-64 lg:w-72 flex flex-col items-center shrink-0"
                    style={{ zIndex: (rounds.length - rIndex) * 10 }}>
-                 <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 mb-8 w-full text-center font-poppins">
+                 <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 mb-4 w-full text-center font-poppins">
                     {round.roundNumber === rounds.length ? "CHAMPIONSHIP" : `ROUND ${round.roundNumber}`}
                  </h2>
                  <div className="relative flex-1 w-full">
@@ -340,7 +353,7 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
             ))}
 
             {isElimination && (
-              <div className="h-full w-80 lg:w-96 flex flex-col items-center shrink-0">
+              <div className="h-full w-64 lg:w-72 flex flex-col items-center shrink-0">
                  <h2 className="text-[8px] font-black text-primary uppercase tracking-[0.5em] border-b border-white/5 pb-2 mb-8 w-full text-center font-poppins">
                     CHAMPION
                  </h2>

@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="space-y-6">
           <div className="flex items-center gap-2">
-            <Image src="/hpluslogo.png" width={64} height={64} alt="Hobby+ Logo" />
+            <Image src="/hpluslogo.png" width={64} height={64} alt="Hobby+ Logo" style={{ height: 'auto' }} />
           </div>
           <p className="text-sm text-neutral-500 leading-relaxed max-w-xs">
             The ultimate platform for competitive hobby gaming. Join tournaments, track stats, and grow your community.

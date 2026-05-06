@@ -35,7 +35,7 @@ export default function MatchCard({
   return (
     <div
       onClick={handleInteraction}
-      className={`w-64 md:w-80 lg:w-96 flex flex-col shadow-2xl transition-all overflow-hidden relative group border-x border-y ${
+      className={`w-64 lg:w-72 flex flex-col shadow-2xl transition-all overflow-hidden relative group border-x border-y ${
         isTracked ? "border-purple-500 ring-2 ring-purple-500/20 scale-105 z-10" : "border-white/5"
       } ${isUpdating ? "opacity-50 pointer-events-none" : ""} cursor-pointer hover:border-primary/50`}
       style={{
@@ -43,14 +43,14 @@ export default function MatchCard({
       }}
     >
       <ParticipantRow
-        username={match.player1?.username || match.p1Name}
+        username={match.player1?.username || match.p1Name || undefined}
         isWinner={match.winnerId ? match.winnerId === match.player1?.id : (!!match.winnerName && match.winnerName === (match.player1?.username || match.p1Name))}
         points={showPoints ? p1Stats?.points : undefined}
         isTracked={trackedUserId === match.player1?.id}
       />
       <div className="h-[1px] bg-white/5 w-full" />
       <ParticipantRow
-        username={match.player2?.username || match.p2Name}
+        username={match.player2?.username || match.p2Name || undefined}
         isWinner={match.winnerId ? match.winnerId === match.player2?.id : (!!match.winnerName && match.winnerName === (match.player2?.username || match.p2Name))}
         points={showPoints ? p2Stats?.points : undefined}
         isBye={match.isBye}
@@ -80,7 +80,7 @@ function ParticipantRow({
 }) {
   return (
     <div
-      className={`px-6 py-5 flex justify-between items-center transition-all ${isWinner ? "bg-primary" : ""} ${isTracked && !isWinner ? "bg-purple-500/10" : ""}`}
+      className={`px-4 py-3 flex justify-between items-center transition-all ${isWinner ? "bg-primary" : ""} ${isTracked && !isWinner ? "bg-purple-500/10" : ""}`}
     >
       <div className="flex items-center gap-3 overflow-hidden">
         <div className="flex flex-col">
