@@ -1,5 +1,15 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+export async function safeJson(res: Response) {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch (e) {
+    console.error("JSON Parse Error:", e, "Text content:", text);
+    return null;
+  }
+}
+
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   
@@ -41,7 +51,7 @@ export const API_ENDPOINTS = {
     LEAVE: (id: string) => `/tournaments/${id}/participants/leave`,
     LEADERBOARD: (id: string) => `/tournaments/${id}/leaderboard`,
     GET_ONE: (id: string) => `/tournaments/${id}`,
-    OPEN: (id: string) => `/tournaments/${id}/open`,
+    UPDATE_STATUS: (id: string) => `/tournaments/${id}/status`,
     GENERATE_BRACKET: (id: string) => `/tournaments/${id}/generate-bracket`,
     INVITE: (token: string) => `/tournaments/invite/${token}`,
     GLOBAL_LEADERBOARD: '/tournaments/leaderboard/global',

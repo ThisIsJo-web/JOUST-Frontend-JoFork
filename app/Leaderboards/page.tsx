@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../Assets/navbar";
-import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 
 interface GlobalLeaderboardEntry {
   rank: number;
@@ -20,6 +20,8 @@ interface GlobalLeaderboardEntry {
 function LeaderboardsContent() {
   const router = useRouter();
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
+  const [userStats, setUserStats] = useState<GlobalLeaderboardEntry | null>(null);
+  const [user, setUser] = useState<{ id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -31,14 +33,43 @@ function LeaderboardsContent() {
     setLoading(true);
     setError("");
     try {
+      // 1. Fetch User Identity (Optional)
+      const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
+      let currentUser = null;
+      if (meRes.ok) {
+        currentUser = await safeJson(meRes);
+        if (currentUser) setUser(currentUser);
+      }
+
+      // 2. Fetch Global Leaderboard Data
       const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GLOBAL_LEADERBOARD);
+      
       if (res.ok) {
-        const data = await res.json();
-        setLeaderboard(data);
+        const data = await safeJson(res);
+        // If data is empty, it's not an error - just an empty leaderboard
+        setLeaderboard(Array.isArray(data) ? data : []);
       } else {
-        setError("UPLINK ERROR: FAILED TO RETRIEVE GLOBAL TELEMETRY");
+        // Distinguish between different types of server errors
+        const status = res.status;
+        if (status === 404) {
+          setError("UPLINK ERROR: TELEMETRY ENDPOINT NOT FOUND (404)");
+        } else if (status === 401 || status === 403) {
+          setError("ACCESS DENIED: INSUFFICIENT PERMISSIONS (401/403)");
+        } else {
+          setError(`UPLINK ERROR: SERVER RETURNED STATUS ${status}`);
+        }
+      }
+
+      // 3. Fetch User-Specific Stats if logged in
+      if (currentUser && (currentUser.sub || currentUser.id)) {
+        const statsRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.USER_STATS(currentUser.sub || currentUser.id));
+        if (statsRes.ok) {
+          const statsData = await safeJson(statsRes);
+          if (statsData) setUserStats(statsData);
+        }
       }
     } catch (err) {
+      console.error("Leaderboard fetch crash:", err);
       setError("CONNECTION LOST: UNABLE TO REACH CENTRAL COMMAND");
     } finally {
       setLoading(false);
@@ -68,6 +99,39 @@ function LeaderboardsContent() {
                 </button>
             </div>
         </div>
+
+        {/* User Stats Card */}
+        {userStats && !loading && (
+          <div className="bg-primary text-white p-8 md:p-12 rounded-[3rem] shadow-2xl shadow-primary/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+              <div className="text-center md:text-left">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60 mb-2">Combatant Profile</p>
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight font-poppins">{userStats.username}</h2>
+                <div className="flex items-center gap-3 mt-4 justify-center md:justify-start">
+                   <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Rank #{userStats.rank}</span>
+                   <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{userStats.points} PTS</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-8 md:gap-16">
+                <div className="text-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Wins</p>
+                  <p className="text-2xl font-black font-poppins">{userStats.wins}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Losses</p>
+                  <p className="text-2xl font-black font-poppins">{userStats.losses}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">MWP</p>
+                  <p className="text-2xl font-black font-poppins">{(userStats.matchWinPct * 100).toFixed(1)}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Display Area */}
         <main className="flex-1 min-h-0 flex flex-col">

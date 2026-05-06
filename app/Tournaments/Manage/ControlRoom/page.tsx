@@ -1,586 +1,216 @@
 "use client";
-
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../../Assets/navbar";
-import { authenticatedFetch, API_ENDPOINTS } from "../../../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
 import { Tournament } from "../../types";
+import ControlRoomHeader from "./components/ControlRoomHeader";
+import RosterPanel from "./components/RosterPanel";
+import SpecsPanel from "./components/SpecsPanel";
+import FormatRulesPanel from "./components/FormatRulesPanel";
+import DeploymentPanel from "./components/DeploymentPanel";
+
+const GUEST_PREFIXES = ["NEON", "CYBER", "VOLT", "NULL", "VOID", "HEX", "CODE", "DARK", "SHADOW", "GLITCH"];
+const GUEST_SUFFIXES = ["WRAITH", "RUNNER", "PUNK", "GHOST", "BLADE", "SOUL", "CORE", "SHARD", "WAVE", "NET"];
+const randomGuestName = () => `${GUEST_PREFIXES[Math.floor(Math.random() * 10)]}_${GUEST_SUFFIXES[Math.floor(Math.random() * 10)]}_${Math.floor(1000 + Math.random() * 9000)}`;
 
 function ControlRoomContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tournamentId = searchParams.get("id");
 
-  const [user, setUser] = useState<{ id: string; roles: string[] } | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [allUsers, setAllUsers] = useState<{ id: string; username: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [allUsers, setAllUsers]     = useState<{ id: string; username: string }[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [message, setMessage]       = useState("");
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editFormat, setEditFormat] = useState("");
-  const [editMaxPlayers, setEditMaxPlayers] = useState(0);
-  const [editPrizePool, setEditPrizePool] = useState<number | "">("");
-  const [editIsPrivate, setEditIsPrivate] = useState(false);
-
+  const [isEditing, setIsEditing]           = useState(false);
   const [isEditingRules, setIsEditingRules] = useState(false);
-  const [formatConfig, setFormatConfig] = useState<any>({});
+  const [formatConfig, setFormatConfig]     = useState<any>({});
   const [formatDefinitions, setFormatDefinitions] = useState<any[]>([]);
+  const [editState, setEditState] = useState({ name: "", format: "", maxPlayers: 0, prizePool: "" as number | "", isPrivate: false });
 
-  const [guestUsername, setGuestUsername] = useState("");
+  const [guestUsername, setGuestUsername]     = useState("");
   const [batchGuestCount, setBatchGuestCount] = useState<number | "">("");
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUserId, setSelectedUserId]   = useState("");
 
   useEffect(() => {
-    if (tournamentId) {
-      fetchData();
-      fetchFormatDefinitions();
-    } else {
-      router.push("/Tournaments/Manage");
-    }
+    if (!tournamentId) { router.push("/Tournaments/Manage"); return; }
+    fetchData();
+    fetchFormatDefinitions();
   }, [tournamentId]);
 
   const fetchFormatDefinitions = async () => {
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.FORMATS.DETAILS);
-      if (res.ok) {
-        const data = await res.json();
-        setFormatDefinitions(data.formats);
-      }
-    } catch (error) {
-      console.error("Failed to fetch format definitions");
-    }
+    const res = await authenticatedFetch(API_ENDPOINTS.FORMATS.DETAILS);
+    if (res.ok) { const data = await safeJson(res); setFormatDefinitions(data?.formats ?? []); }
   };
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        setUser(meData);
-        if (meData.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")) {
-          const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.REGISTERED_USERS);
-          if (usersRes.ok) setAllUsers(await usersRes.json());
-        } else {
-            router.push("/Tournaments");
-            return;
-        }
-      } else {
-        router.push("/Auth");
-        return;
-      }
+      if (!meRes.ok) { router.push("/Auth"); return; }
+      const me = await safeJson(meRes);
+      if (!me?.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")) { router.push("/Tournaments"); return; }
+
+      const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.USERS);
+      if (usersRes.ok) setAllUsers(await safeJson(usersRes) ?? []);
 
       const tRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!));
       if (tRes.ok) {
-        const tData = await tRes.json();
-        setTournament(tData);
-        setEditName(tData.name);
-        setEditFormat(tData.format);
-        setEditMaxPlayers(tData.maxPlayers);
-        setEditPrizePool(tData.prizePool || "");
-        setEditIsPrivate(tData.isPrivate || false);
-        setFormatConfig(tData.formatConfig || {});
-      } else {
-        setMessage("Tournament not found");
-      }
-    } catch (error) {
-      setMessage("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
+        const t = await safeJson(tRes);
+        setTournament(t);
+        setEditState({ name: t.name, format: t.format, maxPlayers: t.maxPlayers, prizePool: t.prizePool || "", isPrivate: t.isPrivate || false });
+        setFormatConfig(t.formatConfig || {});
+      } else { setMessage("Tournament not found"); }
+    } catch { setMessage("Failed to load data"); }
+    finally { setLoading(false); }
   };
 
-  const handleUpdateTournament = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editName,
-          format: editFormat,
-          maxPlayers: Number(editMaxPlayers),
-          prizePool: editPrizePool === "" ? null : Number(editPrizePool),
-          isPrivate: editIsPrivate,
-          formatConfig: formatConfig,
-        }),
-      });
-      if (res.ok) {
-        setMessage("Arena Specs Updated");
-        setIsEditing(false);
-        setIsEditingRules(false);
-        fetchData();
-      }
-    } catch (error) {
-      setMessage("Update failed");
-    }
-  };
-
-  const handleRuleChange = (key: string, value: any) => {
-    setFormatConfig((prev: any) => ({
-      ...prev,
-      [key]: value === "" ? null : Number(value)
-    }));
-  };
-
-  const handleJoin = async (userId: string) => {
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      if (res.ok) {
-        setMessage("Combatant Registered");
-        fetchData();
-        return true;
-      } else {
-        const err = await res.json();
-        setMessage(err.message || "Registration failed");
-        return false;
-      }
-    } catch (error) {
-      setMessage("Connection error");
-      return false;
-    }
+  const handleUpdateTournament = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...editState, maxPlayers: Number(editState.maxPlayers), prizePool: editState.prizePool === "" ? null : Number(editState.prizePool), formatConfig }),
+    });
+    if (res.ok) { setMessage("Arena Specs Updated"); setIsEditing(false); setIsEditingRules(false); fetchData(); }
+    else { setMessage("Update failed"); }
   };
 
   const handleAddGuest = async () => {
-    if (!guestUsername) return;
-    if (tournament && tournament.participants.length >= tournament.maxPlayers) {
-      setMessage("Arena at maximum capacity");
-      return;
+    if (!guestUsername || !tournament || tournament.participants.length >= tournament.maxPlayers) {
+      setMessage("Arena at maximum capacity"); return;
     }
-
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestName: guestUsername }),
-      });
-      if (res.ok) {
-        setMessage("Guest Registered");
-        setGuestUsername("");
-        fetchData();
-      } else {
-        const err = await res.json();
-        setMessage(err.message || "Guest failed");
-      }
-    } catch (error) {
-      setMessage("Guest registration error");
-    }
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guestName: guestUsername }),
+    });
+    const data = await safeJson(res);
+    if (res.ok) { setMessage("Guest Registered"); setGuestUsername(""); fetchData(); }
+    else { setMessage(data?.message || "Guest failed"); }
   };
 
   const handleBatchAddGuests = async () => {
     if (!tournament || !batchGuestCount || Number(batchGuestCount) <= 0) return;
-    const remaining = tournament.maxPlayers - tournament.participants.length;
-    const countToAdd = Math.min(Number(batchGuestCount), remaining);
-    
-    if (countToAdd <= 0) {
-      setMessage("Arena at maximum capacity");
-      return;
-    }
-
+    const countToAdd = Math.min(Number(batchGuestCount), tournament.maxPlayers - tournament.participants.length);
+    if (countToAdd <= 0) { setMessage("Arena at maximum capacity"); return; }
     if (!confirm(`Initialize bulk deployment of ${countToAdd} guests?`)) return;
-
     setLoading(true);
-    setMessage(`Deploying ${countToAdd} guests...`);
-    
-    try {
-      const prefixes = ["NEON", "CYBER", "VOLT", "NULL", "VOID", "HEX", "CODE", "DARK", "SHADOW", "GLITCH"];
-      const suffixes = ["WRAITH", "RUNNER", "PUNK", "GHOST", "BLADE", "SOUL", "CORE", "SHARD", "WAVE", "NET"];
-      
-      for (let i = 0; i < countToAdd; i++) {
-        const randomName = `${prefixes[Math.floor(Math.random() * prefixes.length)]}_${suffixes[Math.floor(Math.random() * suffixes.length)]}_${Math.floor(1000 + Math.random() * 9000)}`;
-        await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ guestName: randomName }),
-        });
-      }
-      setBatchGuestCount("");
-      await fetchData();
-    } catch (error) {
-      setMessage("Bulk deployment encountered errors");
-      await fetchData();
-    } finally {
-      setLoading(false);
+    for (let i = 0; i < countToAdd; i++) {
+      await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guestName: randomGuestName() }),
+      });
     }
+    setBatchGuestCount(""); await fetchData();
+  };
+
+  const handleJoin = async (userId: string) => {
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }),
+    });
+    const data = await safeJson(res);
+    if (res.ok) { setMessage("Combatant Registered"); fetchData(); }
+    else { setMessage(data?.message || "Registration failed"); }
   };
 
   const handleOpenRegistration = async () => {
-    if (!confirm("Open registration? Players will be able to join this tournament.")) return;
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startNow: true }),
-      });
-      if (res.ok) {
-        setMessage("Registration opened! Tournament is now OPEN.");
-        fetchData();
-      } else {
-        const err = await res.json();
-        setMessage(err.message || "Failed to open registration");
-      }
-    } catch {
-      setMessage("Connection error");
-    }
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.UPDATE_STATUS(tournamentId!), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "OPEN" }),
+    });
+    if (res.ok) { setMessage("Registration opened!"); fetchData(); }
+    else { const d = await safeJson(res); setMessage(d?.message || "Failed to open arena"); }
   };
 
   const handleStartTournament = async () => {
     if (!confirm("Initiate combat sequence?")) return;
-    try {
-      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
-      if (res.ok) {
-        setMessage("Combat initiated!");
-        fetchData();
-      }
-    } catch (error) {
-      setMessage("Activation failed");
-    }
-  };
-
-  const handleOpenTournament = async () => {
-    try {
-        const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.OPEN(tournamentId!), { method: "POST" });
-        if (res.ok) {
-            setMessage("Arena opened for registration");
-            fetchData();
-        }
-    } catch (error) {
-        setMessage("Opening failed");
-    }
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
+    if (res.ok) { setMessage("Combat initiated!"); fetchData(); }
+    else { setMessage("Activation failed"); }
   };
 
   const handleGenerateBracket = async () => {
-    try {
-        const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GENERATE_BRACKET(tournamentId!), { method: "POST" });
-        if (res.ok) {
-            setMessage("Bracket preview generated");
-            fetchData();
-        } else {
-            const err = await res.json();
-            setMessage(err.message || "Bracket generation failed");
-        }
-    } catch (error) {
-        setMessage("Bracket generation failed");
-    }
+    const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GENERATE_BRACKET(tournamentId!), { method: "POST" });
+    const data = await safeJson(res);
+    if (res.ok) { setMessage("Bracket preview generated"); fetchData(); }
+    else { setMessage(data?.message || "Bracket generation failed"); }
   };
 
-  if (loading) {
-    return (
-        <div className="min-h-screen w-full bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Syncing Terminal</p>
-            </div>
-        </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen w-full bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Syncing Terminal</p>
+      </div>
+    </div>
+  );
 
-  if (!tournament) return <div className="min-h-screen flex items-center justify-center text-white bg-background font-black uppercase tracking-widest">Arena Offline</div>;
+  if (!tournament) return (
+    <div className="min-h-screen flex items-center justify-center text-white bg-background font-black uppercase tracking-widest">Arena Offline</div>
+  );
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
       <Navbar />
-      
       <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
-        {/* Navigation & Status Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-foreground/5 pb-12">
-            <div>
-                <button 
-                    onClick={() => router.push("/Tournaments/Manage")}
-                    className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins mb-4 hover:opacity-70 transition-all flex items-center gap-2"
-                >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7"/></svg>
-                    Back to Console
-                </button>
-                <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-foreground font-poppins leading-none">{tournament.name}</h1>
-                <div className="flex items-center gap-4 mt-6">
-                    <span className="bg-primary text-white px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-md">{tournament.status}</span>
-                    <span className="text-foreground/40 text-[10px] font-black uppercase tracking-widest font-poppins">
-                        {tournament.format.replace("_", " ")} · ₱{tournament.prizePool?.toLocaleString() || "0"} POOL
-                    </span>
-                </div>
-            </div>
-            <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                <button 
-                    onClick={() => router.push(`/Tournaments/Bracket?id=${tournamentId}`)}
-                    className="flex-1 md:px-12 py-5 border-2 border-primary text-primary font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-primary hover:text-white transition-all font-poppins"
-                >
-                    Brackets
-                </button>
-                {tournament.status === "UPCOMING" && (
-                    <button 
-                        onClick={handleOpenTournament}
-                        className="flex-1 md:px-12 py-5 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-blue-600/20 font-poppins"
-                    >
-                        Open Arena
-                    </button>
-                )}
-
-                {tournament.status === "OPEN" && (
-                    <>
-                        <button 
-                            onClick={handleGenerateBracket}
-                            className="flex-1 md:px-12 py-5 border-2 border-foreground text-foreground font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-foreground hover:text-background transition-all font-poppins"
-                        >
-                            {tournament.rounds.length > 0 ? "Regenerate Preview" : "Generate Preview"}
-                        </button>
-                        <button 
-                            onClick={handleStartTournament}
-                            className="flex-1 md:px-12 py-5 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
-                        >
-                            Initiate Combat
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
+        <ControlRoomHeader
+          tournament={tournament}
+          tournamentId={tournamentId!}
+          onBack={() => router.push("/Tournaments/Manage")}
+          onViewBracket={() => router.push(`/Tournaments/Bracket?id=${tournamentId}`)}
+          onOpenArena={handleOpenRegistration}
+          onGenerateBracket={handleGenerateBracket}
+          onStartTournament={handleStartTournament}
+        />
 
         {message && (
-            <div className="mb-12 p-4 bg-primary/10 border border-primary/20 rounded-2xl text-primary text-center font-black text-[10px] uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
-                {message}
-            </div>
+          <div className="mb-12 p-4 bg-primary/10 border border-primary/20 rounded-2xl text-primary text-center font-black text-[10px] uppercase tracking-widest animate-in fade-in slide-in-from-top-2">
+            {message}
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left: Combatant Roster */}
-            <div className="lg:col-span-8 space-y-8">
-                <div className="flex items-center gap-6 mb-4">
-                    <h2 className="text-2xl font-black uppercase tracking-tight text-foreground font-poppins">
-                        Arena Roster <span className="text-foreground/20 ml-2">[{tournament.participants.length}/{tournament.maxPlayers}]</span>
-                    </h2>
-                    <div className="h-[1px] flex-1 bg-foreground/10"></div>
-                </div>
+          <RosterPanel tournament={tournament} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {tournament.participants.length === 0 ? (
-                        <div className="col-span-full py-20 border border-dashed border-foreground/10 rounded-[2.5rem] flex items-center justify-center text-foreground/20 font-black uppercase text-sm tracking-widest">
-                            No combatants deployed
-                        </div>
-                    ) : (
-                        tournament.participants.map((p, idx) => (
-                            <div key={p.id} className="bg-foreground/5 border border-foreground/5 p-6 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <span className="text-primary font-black text-[10px] font-poppins w-6">{(idx + 1).toString().padStart(2, '0')}</span>
-                                    <span className="text-sm font-black text-foreground uppercase tracking-tight font-poppins">{p.user.username || p.user.guestName}</span>
-                                </div>
-                                <span className="text-[9px] font-black text-foreground/20 uppercase tracking-widest">#{p.user.id.slice(0,6)}</span>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Right: Technical Specs & Management */}
-            <div className="lg:col-span-4 space-y-8">
-                {/* Arena Specifications */}
-                <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[2.5rem]">
-                    <div className="flex justify-between items-center mb-8 border-b border-foreground/10 pb-4">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground font-poppins">Technical Specs</h3>
-                        <button onClick={() => setIsEditing(!isEditing)} className="text-[10px] font-black uppercase text-primary hover:underline tracking-widest font-poppins">
-                            {isEditing ? "Discard" : "Modify"}
-                        </button>
-                    </div>
-
-                    {isEditing ? (
-                        <form onSubmit={handleUpdateTournament} className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Arena Name</label>
-                                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Combat Format</label>
-                                <select value={editFormat} onChange={e => setEditFormat(e.target.value)} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none">
-                                    <option value="SINGLE_ELIMINATION">SINGLE ELIMINATION</option>
-                                    <option value="SWISS">SWISS</option>
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Capacity</label>
-                                    <input type="number" value={editMaxPlayers} onChange={e => setEditMaxPlayers(Number(e.target.value))} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Prize (₱)</label>
-                                    <input type="number" value={editPrizePool} onChange={e => setEditPrizePool(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Status Management</p>
-                                <div className="relative">
-                                    <select
-                                        value={tournament.status}
-                                        onChange={async (e) => {
-                                            const target = e.target.value;
-                                            const current = tournament.status;
-                                            if (current === "UPCOMING" && target === "OPEN") {
-                                                if (!confirm("Open registration? Players will be able to join.")) { e.target.value = current; return; }
-                                                handleOpenRegistration();
-                                            } else if (current === "OPEN" && target === "ONGOING") {
-                                                if (!confirm("Initiate combat? No more players can join after this.")) { e.target.value = current; return; }
-                                                handleStartTournament();
-                                            } else if (current === "ONGOING" && target === "COMPLETED") {
-                                                if (!confirm("Mark tournament as completed?")) { e.target.value = current; return; }
-                                                const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.COMPLETE(tournamentId!), { method: "PATCH" });
-                                                if (res.ok) { setMessage("Tournament completed!"); fetchData(); }
-                                                else { const err = await res.json(); setMessage(err.message || "Failed"); }
-                                            } else {
-                                                setMessage("Cannot reverse tournament status");
-                                                e.target.value = current;
-                                            }
-                                        }}
-                                        className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs font-black text-foreground uppercase tracking-tight focus:outline-none focus:border-primary transition-all rounded-xl appearance-none cursor-pointer"
-                                    >
-                                        {["UPCOMING", "OPEN", "ONGOING", "COMPLETED"].map(s => {
-                                            const stages = ["UPCOMING", "OPEN", "ONGOING", "COMPLETED"];
-                                            const currentIdx = stages.indexOf(tournament.status);
-                                            const thisIdx = stages.indexOf(s);
-                                            const isDisabled = thisIdx < currentIdx || thisIdx > currentIdx + 1;
-                                            return (
-                                                <option key={s} value={s} disabled={isDisabled}>
-                                                    {s}{s === tournament.status ? " (CURRENT)" : ""}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7"/></svg>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="submit" className="w-full py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:brightness-110 transition-all font-poppins">Commit Specs</button>
-                        </form>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-y-8 gap-x-4">
-                            <div className="space-y-1">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">Format</p>
-                                <p className="text-xs font-black text-foreground uppercase tracking-tight">{tournament.format.replace("_"," ")}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">Capacity</p>
-                                <p className="text-xs font-black text-foreground uppercase tracking-tight">{tournament.maxPlayers} MAX</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">Privacy</p>
-                                <p className="text-xs font-black text-foreground uppercase tracking-tight">{tournament.isPrivate ? "RESTRICTED" : "OPEN"}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">Status</p>
-                                <p className="text-xs font-black text-primary uppercase tracking-tight">{tournament.status}</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Format Overrides / Base Rules */}
-                <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[2.5rem]">
-                    <div className="flex justify-between items-center mb-8 border-b border-foreground/10 pb-4">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-foreground font-poppins">Format Rules</h3>
-                            {!isEditingRules && (
-                                <button onClick={() => setIsEditingRules(true)} className="text-primary hover:opacity-70 transition-all">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                            )}
-                        </div>
-                        {isEditingRules && (
-                            <button onClick={() => { setIsEditingRules(false); setFormatConfig(tournament.formatConfig || {}); }} className="text-[10px] font-black uppercase text-foreground/40 hover:text-foreground tracking-widest font-poppins">
-                                Discard
-                            </button>
-                        )}
-                    </div>
-
-                    {isEditingRules ? (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4">
-                                {formatDefinitions.find(f => f.id === tournament.format)?.configFields.map((field: any) => (
-                                    <div key={field.key} className="space-y-2">
-                                        <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">{field.label}</label>
-                                        <input 
-                                            type="number" 
-                                            value={formatConfig[field.key] ?? ""} 
-                                            onChange={(e) => handleRuleChange(field.key, e.target.value)}
-                                            placeholder={field.defaultValue !== null ? String(field.defaultValue) : field.placeholder}
-                                            className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" 
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <button 
-                                onClick={handleUpdateTournament}
-                                className="w-full py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:brightness-110 transition-all font-poppins"
-                            >
-                                Persist Rules
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                            {formatDefinitions.find(f => f.id === tournament.format)?.configFields.map((field: any) => (
-                                <div key={field.key} className="space-y-1">
-                                    <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">{field.label}</p>
-                                    <p className="text-xs font-black text-foreground uppercase tracking-tight">
-                                        {formatConfig[field.key] ?? field.defaultValue ?? "AUTO"}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Tactical Management */}
-                {tournament.status === "UPCOMING" && (
-                    <div className="bg-yellow-500/5 border border-yellow-500/20 p-6 rounded-[2.5rem] flex items-start gap-3">
-                        <svg className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-                        <p className="text-[9px] text-yellow-500/70 font-black uppercase tracking-widest leading-relaxed">
-                            Change status to OPEN above to unlock Deployment Tools and allow players to join.
-                        </p>
-                    </div>
-                )}
-                {tournament.status === "OPEN" && (
-                    <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[2.5rem] space-y-8">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground border-b border-foreground/10 pb-4 font-poppins">Deployment Tools</h3>
-                        
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Summon Guest</p>
-                            <div className="flex gap-2">
-                                <input placeholder="ARENA NAME" value={guestUsername} onChange={e => setGuestUsername(e.target.value)} className="flex-1 h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
-                                <button onClick={handleAddGuest} className="w-12 h-12 bg-primary/10 border border-primary/20 text-primary font-black text-xl hover:bg-primary hover:text-white transition-all rounded-xl">+</button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Invite Player</p>
-                            <select value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none">
-                                <option value="">SELECT PLAYER</option>
-                                {allUsers.filter(u => !tournament.participants.some(p => p.userId === u.id)).map(u => (
-                                    <option key={u.id} value={u.id}>{(u.username || (u as any).guestName || "Unknown User").toUpperCase()}</option>
-                                ))}
-                             </select>
-                            <button onClick={() => selectedUserId && handleJoin(selectedUserId)} className="w-full py-4 bg-foreground/10 text-foreground font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-foreground hover:text-background transition-all font-poppins">Invite Player</button>
-                        </div>
-
-                        {tournament.participants.length < tournament.maxPlayers && (
-                            <div className="space-y-4 pt-4 border-t border-foreground/10">
-                                <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">Batch Summon Guests</p>
-                                <div className="flex gap-2">
-                                    <input type="number" min="1" max={tournament.maxPlayers - tournament.participants.length} placeholder="NUMBER" value={batchGuestCount} onChange={e => setBatchGuestCount(e.target.value === "" ? "" : Number(e.target.value))} className="w-24 h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
-                                    <button onClick={handleBatchAddGuests} className="flex-1 h-12 bg-primary/10 border border-primary/20 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all rounded-xl">Add Guests</button>
-                                </div>
-                                <p className="text-[8px] font-bold text-foreground/30 uppercase tracking-widest text-right">Max allowed: {tournament.maxPlayers - tournament.participants.length}</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+          <div className="lg:col-span-4 space-y-8">
+            <SpecsPanel
+              tournament={tournament}
+              tournamentId={tournamentId!}
+              isEditing={isEditing}
+              editState={editState}
+              onToggleEdit={() => setIsEditing(v => !v)}
+              onEditChange={(field, value) => setEditState(prev => ({ ...prev, [field]: value }))}
+              onSubmit={handleUpdateTournament}
+              onOpenRegistration={handleOpenRegistration}
+              onStartTournament={handleStartTournament}
+              fetchData={fetchData}
+              setMessage={setMessage}
+            />
+            <FormatRulesPanel
+              tournament={tournament}
+              formatDefinitions={formatDefinitions}
+              isEditing={isEditingRules}
+              formatConfig={formatConfig}
+              onToggleEdit={() => setIsEditingRules(true)}
+              onDiscard={() => { setIsEditingRules(false); setFormatConfig(tournament.formatConfig || {}); }}
+              onRuleChange={(key, value) => setFormatConfig((prev: any) => ({ ...prev, [key]: value === "" ? null : Number(value) }))}
+              onSave={handleUpdateTournament}
+            />
+            <DeploymentPanel
+              tournament={tournament}
+              allUsers={allUsers}
+              guestUsername={guestUsername}
+              setGuestUsername={setGuestUsername}
+              batchGuestCount={batchGuestCount}
+              setBatchGuestCount={setBatchGuestCount}
+              selectedUserId={selectedUserId}
+              setSelectedUserId={setSelectedUserId}
+              onAddGuest={handleAddGuest}
+              onBatchAddGuests={handleBatchAddGuests}
+              onInvitePlayer={() => selectedUserId && handleJoin(selectedUserId)}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -590,12 +220,12 @@ function ControlRoomContent() {
 export default function ControlRoomPage() {
   return (
     <Suspense fallback={
-        <div className="min-h-screen w-full bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Syncing Terminal</p>
-            </div>
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Syncing Terminal</p>
         </div>
+      </div>
     }>
       <ControlRoomContent />
     </Suspense>

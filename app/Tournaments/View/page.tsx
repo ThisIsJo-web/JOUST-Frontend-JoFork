@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../Assets/navbar";
-import { authenticatedFetch, API_ENDPOINTS } from "../../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 import { Tournament } from "../types";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,8 +34,14 @@ function TournamentViewContent() {
         authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!))
       ]);
       
-      if (meRes.ok) setUser(await meRes.json());
-      if (tRes.ok) setTournament(await tRes.json());
+      if (meRes.ok) {
+        const data = await safeJson(meRes);
+        if (data) setUser(data);
+      }
+      if (tRes.ok) {
+        const data = await safeJson(tRes);
+        if (data) setTournament(data);
+      }
       
     } catch (error) {
       console.error("Fetch failed:", error);
@@ -54,12 +60,12 @@ function TournamentViewContent() {
       const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: (user as any).id || (user as any).sub }),
       });
       if (res.ok) {
         fetchData();
       } else {
-        const err = await res.json();
+        const err = await safeJson(res) || { message: "Join failed" };
         alert(err.message || "Join failed");
       }
     } catch (error) {

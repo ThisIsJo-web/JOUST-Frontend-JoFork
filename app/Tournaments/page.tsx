@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Navbar from "../Assets/navbar";
-import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 import { Tournament } from "./types";
 import FeaturedCard from "./components/FeaturedCard";
 import TournamentCard from "./components/TournamentCard";
@@ -34,8 +34,8 @@ export default function TournamentPage() {
         try {
             const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
             if (res.ok) {
-                const data = await res.json();
-                setUser(data);
+                const data = await safeJson(res);
+                if (data) setUser(data);
             }
         } catch (error) {
             console.error("Failed to fetch user:", error);
@@ -46,9 +46,9 @@ export default function TournamentPage() {
         try {
             const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);
             if (res.ok) {
-                const data = await res.json();
+                const data = await safeJson(res);
                 // Filter out completed tournaments
-                const activeTournaments = data.filter((t: Tournament) => t.status !== "COMPLETED");
+                const activeTournaments = Array.isArray(data) ? data.filter((t: Tournament) => t.status !== "COMPLETED") : [];
                 setTournaments(activeTournaments);
                 if (activeTournaments.length > 0) {
                     setActiveId(activeTournaments[0].id);
