@@ -9,7 +9,7 @@ export default function ManageTournaments() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
-    const [user, setUser] = useState<{ roles: string[], sub: string } | null>(null);
+    const [user, setUser] = useState<{ roles: string[], id: string } | null>(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [message, setMessage] = useState("");
 
@@ -18,6 +18,11 @@ export default function ManageTournaments() {
     const [format, setFormat] = useState("SINGLE_ELIMINATION");
     const [maxPlayers, setMaxPlayers] = useState(16);
     const [prizePool, setPrizePool] = useState<number | "">("");
+    const [entranceFee, setEntranceFee] = useState<number | "">("");
+    const [venue, setVenue] = useState("");
+    const [date, setDate] = useState("");
+    const [startTime, setStartTime] = useState("");
+    const [startNow, setStartNow] = useState(true);
     const [isPrivate, setIsPrivate] = useState(false);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -59,6 +64,12 @@ export default function ManageTournaments() {
         e.preventDefault();
         setMessage("");
         if (!user) return;
+        
+        let finalDate = null;
+        if (date) {
+            finalDate = startTime ? `${date}T${startTime}` : `${date}T00:00:00`;
+        }
+
         try {
             const response = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.CREATE, {
                 method: "POST",
@@ -68,8 +79,12 @@ export default function ManageTournaments() {
                     format,
                     maxPlayers: Number(maxPlayers),
                     prizePool: prizePool === "" ? null : Number(prizePool),
+                    entranceFee: entranceFee === "" ? null : Number(entranceFee),
+                    venue,
+                    date: finalDate,
                     isPrivate,
-                    createdById: user.sub,
+                    startNow,
+                    createdById: user.id,
                 }),
             });
             if (response.ok) {
@@ -80,6 +95,11 @@ export default function ManageTournaments() {
                 setFormat("SINGLE_ELIMINATION");
                 setMaxPlayers(16);
                 setPrizePool("");
+                setEntranceFee("");
+                setVenue("");
+                setDate("");
+                setStartTime("");
+                setStartNow(true);
                 setIsPrivate(false);
                 // Refresh list
                 const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);
@@ -177,7 +197,54 @@ export default function ManageTournaments() {
                                 <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Prize Pool (₱)</label>
                                 <input type="number" value={prizePool} onChange={(e) => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="OPTIONAL" className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
                             </div>
-                            <div className="flex items-end pb-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Arena Venue</label>
+                                <input type="text" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="E.G. MADISON SQUARE" className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Event Date</label>
+                                <input 
+                                    type="date" 
+                                    value={date} 
+                                    onChange={(e) => {
+                                        setDate(e.target.value);
+                                        if (e.target.value) setStartNow(false);
+                                    }} 
+                                    className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Start Time</label>
+                                <input 
+                                    type="time" 
+                                    value={startTime} 
+                                    onChange={(e) => {
+                                        setStartTime(e.target.value);
+                                        if (e.target.value) setStartNow(false);
+                                    }} 
+                                    className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1 font-poppins">Entrance Fee (₱)</label>
+                                <input type="number" value={entranceFee} onChange={(e) => setEntranceFee(e.target.value === "" ? "" : Number(e.target.value))} placeholder="OPTIONAL" className="w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" />
+                            </div>
+                            <div className="flex flex-col gap-4 py-2">
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={startNow} 
+                                        onChange={(e) => {
+                                            setStartNow(e.target.checked);
+                                            if (e.target.checked) {
+                                                setDate("");
+                                                setStartTime("");
+                                            }
+                                        }} 
+                                        className="w-6 h-6 accent-primary bg-background border-foreground/10 rounded-lg" 
+                                    />
+                                    <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-primary transition-colors">Start Now (Skip Scheduled)</span>
+                                </label>
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="w-6 h-6 accent-primary bg-background border-foreground/10 rounded-lg" />
                                     <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-primary transition-colors">Private Arena</span>
@@ -201,7 +268,35 @@ export default function ManageTournaments() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-black uppercase tracking-tight text-foreground font-poppins">{t.name}</h3>
-                                        <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">{t.format.replace("_", " ")} · {t.maxPlayers} PLAYERS · {t.status}</p>
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">{t.format.replace("_", " ")} · {t.maxPlayers} PLAYERS</p>
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                                t.status === 'UPCOMING' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+                                                t.status === 'OPEN' ? 'bg-primary/10 text-primary border border-primary/20' : 
+                                                'bg-foreground/10 text-foreground/40 border border-foreground/20'
+                                            }`}>
+                                                {t.status}
+                                            </span>
+                                            {t.status === 'UPCOMING' && t.date && (
+                                                <span className="text-[8px] font-black text-blue-400/60 uppercase tracking-widest">
+                                                    Scheduled: {new Date(t.date).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-3">
+                                            <span className="text-[8px] font-black text-foreground/20 uppercase tracking-[0.2em]">Invite Link:</span>
+                                            <button 
+                                                onClick={() => {
+                                                    const link = `${window.location.origin}/Tournaments/View?id=${t.id}&invite=${t.inviteToken}`;
+                                                    navigator.clipboard.writeText(link);
+                                                    setMessage("Link Copied to Clipboard");
+                                                    setTimeout(() => setMessage(""), 3000);
+                                                }}
+                                                className="text-[8px] font-black text-primary uppercase tracking-[0.2em] hover:underline cursor-pointer bg-primary/5 px-2 py-1 rounded-md"
+                                            >
+                                                {t.inviteToken.slice(0, 8)}... (Copy)
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 w-full md:w-auto">

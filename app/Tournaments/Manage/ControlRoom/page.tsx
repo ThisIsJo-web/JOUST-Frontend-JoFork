@@ -11,7 +11,7 @@ function ControlRoomContent() {
   const searchParams = useSearchParams();
   const tournamentId = searchParams.get("id");
 
-  const [user, setUser] = useState<{ id: string; sub: string; roles: string[] } | null>(null);
+  const [user, setUser] = useState<{ id: string; roles: string[] } | null>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [allUsers, setAllUsers] = useState<{ id: string; username: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,16 +24,33 @@ function ControlRoomContent() {
   const [editPrizePool, setEditPrizePool] = useState<number | "">("");
   const [editIsPrivate, setEditIsPrivate] = useState(false);
 
+  const [isEditingRules, setIsEditingRules] = useState(false);
+  const [formatConfig, setFormatConfig] = useState<any>({});
+  const [formatDefinitions, setFormatDefinitions] = useState<any[]>([]);
+
   const [guestUsername, setGuestUsername] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
 
   useEffect(() => {
     if (tournamentId) {
       fetchData();
+      fetchFormatDefinitions();
     } else {
       router.push("/Tournaments/Manage");
     }
   }, [tournamentId]);
+
+  const fetchFormatDefinitions = async () => {
+    try {
+      const res = await authenticatedFetch(API_ENDPOINTS.FORMATS.DETAILS);
+      if (res.ok) {
+        const data = await res.json();
+        setFormatDefinitions(data.formats);
+      }
+    } catch (error) {
+      console.error("Failed to fetch format definitions");
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -63,6 +80,7 @@ function ControlRoomContent() {
         setEditMaxPlayers(tData.maxPlayers);
         setEditPrizePool(tData.prizePool || "");
         setEditIsPrivate(tData.isPrivate || false);
+        setFormatConfig(tData.formatConfig || {});
       } else {
         setMessage("Tournament not found");
       }
@@ -85,16 +103,25 @@ function ControlRoomContent() {
           maxPlayers: Number(editMaxPlayers),
           prizePool: editPrizePool === "" ? null : Number(editPrizePool),
           isPrivate: editIsPrivate,
+          formatConfig: formatConfig,
         }),
       });
       if (res.ok) {
         setMessage("Arena Specs Updated");
         setIsEditing(false);
+        setIsEditingRules(false);
         fetchData();
       }
     } catch (error) {
       setMessage("Update failed");
     }
+  };
+
+  const handleRuleChange = (key: string, value: any) => {
+    setFormatConfig((prev: any) => ({
+      ...prev,
+      [key]: value === "" ? null : Number(value)
+    }));
   };
 
   const handleJoin = async (userId: string) => {
@@ -186,6 +213,33 @@ function ControlRoomContent() {
     }
   };
 
+  const handleOpenTournament = async () => {
+    try {
+        const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.OPEN(tournamentId!), { method: "POST" });
+        if (res.ok) {
+            setMessage("Arena opened for registration");
+            fetchData();
+        }
+    } catch (error) {
+        setMessage("Opening failed");
+    }
+  };
+
+  const handleGenerateBracket = async () => {
+    try {
+        const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GENERATE_BRACKET(tournamentId!), { method: "POST" });
+        if (res.ok) {
+            setMessage("Bracket preview generated");
+            fetchData();
+        } else {
+            const err = await res.json();
+            setMessage(err.message || "Bracket generation failed");
+        }
+    } catch (error) {
+        setMessage("Bracket generation failed");
+    }
+  };
+
   if (loading) {
     return (
         <div className="min-h-screen w-full bg-background flex items-center justify-center">
@@ -222,20 +276,38 @@ function ControlRoomContent() {
                     </span>
                 </div>
             </div>
-            <div className="flex gap-4 w-full md:w-auto">
+            <div className="flex flex-wrap gap-4 w-full md:w-auto">
                 <button 
                     onClick={() => router.push(`/Tournaments/Bracket?id=${tournamentId}`)}
                     className="flex-1 md:px-12 py-5 border-2 border-primary text-primary font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-primary hover:text-white transition-all font-poppins"
                 >
                     Brackets
                 </button>
-                {tournament.status === "OPEN" && (
+                
+                {tournament.status === "UPCOMING" && (
                     <button 
-                        onClick={handleStartTournament}
-                        className="flex-1 md:px-12 py-5 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
+                        onClick={handleOpenTournament}
+                        className="flex-1 md:px-12 py-5 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-blue-600/20 font-poppins"
                     >
-                        Initiate Combat
+                        Open Arena
                     </button>
+                )}
+
+                {tournament.status === "OPEN" && (
+                    <>
+                        <button 
+                            onClick={handleGenerateBracket}
+                            className="flex-1 md:px-12 py-5 border-2 border-foreground text-foreground font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-foreground hover:text-background transition-all font-poppins"
+                        >
+                            {tournament.rounds.length > 0 ? "Regenerate Preview" : "Generate Preview"}
+                        </button>
+                        <button 
+                            onClick={handleStartTournament}
+                            className="flex-1 md:px-12 py-5 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
+                        >
+                            Initiate Combat
+                        </button>
+                    </>
                 )}
             </div>
         </div>
@@ -329,6 +401,63 @@ function ControlRoomContent() {
                                 <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">Status</p>
                                 <p className="text-xs font-black text-primary uppercase tracking-tight">{tournament.status}</p>
                             </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Format Overrides / Base Rules */}
+                <div className="bg-foreground/5 border border-foreground/5 p-8 rounded-[2.5rem]">
+                    <div className="flex justify-between items-center mb-8 border-b border-foreground/10 pb-4">
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-foreground font-poppins">Format Rules</h3>
+                            {!isEditingRules && (
+                                <button onClick={() => setIsEditingRules(true)} className="text-primary hover:opacity-70 transition-all">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                        {isEditingRules && (
+                            <button onClick={() => { setIsEditingRules(false); setFormatConfig(tournament.formatConfig || {}); }} className="text-[10px] font-black uppercase text-foreground/40 hover:text-foreground tracking-widest font-poppins">
+                                Discard
+                            </button>
+                        )}
+                    </div>
+
+                    {isEditingRules ? (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 gap-4">
+                                {formatDefinitions.find(f => f.id === tournament.format)?.configFields.map((field: any) => (
+                                    <div key={field.key} className="space-y-2">
+                                        <label className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins ml-1">{field.label}</label>
+                                        <input 
+                                            type="number" 
+                                            value={formatConfig[field.key] ?? ""} 
+                                            onChange={(e) => handleRuleChange(field.key, e.target.value)}
+                                            placeholder={field.defaultValue !== null ? String(field.defaultValue) : field.placeholder}
+                                            className="w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl" 
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            <button 
+                                onClick={handleUpdateTournament}
+                                className="w-full py-4 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:brightness-110 transition-all font-poppins"
+                            >
+                                Persist Rules
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                            {formatDefinitions.find(f => f.id === tournament.format)?.configFields.map((field: any) => (
+                                <div key={field.key} className="space-y-1">
+                                    <p className="text-[9px] font-black text-foreground/40 uppercase tracking-widest font-poppins">{field.label}</p>
+                                    <p className="text-xs font-black text-foreground uppercase tracking-tight">
+                                        {formatConfig[field.key] ?? field.defaultValue ?? "AUTO"}
+                                    </p>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
