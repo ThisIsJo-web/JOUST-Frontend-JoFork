@@ -1,4 +1,12 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = (() => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  // Auto-discovery for local networking (Mobile support)
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    const protocol = window.location.protocol; // e.g. 'http:' or 'https:'
+    return `${protocol}//${window.location.hostname}:4000`;
+  }
+  return "http://localhost:4000";
+})();
 
 export async function safeJson(res: Response) {
   const text = await res.text();
@@ -14,20 +22,34 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   
   const headers = new Headers(options.headers || {});
-  
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
   
-  // Build full URL if only endpoint is provided
   const fullUrl = url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   
-  // Ensure credentials are still included for cookie support
-  return fetch(fullUrl, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+    return response;
+  } catch (error) {
+    console.error("Critical Fetch Error:", {
+      url: fullUrl,
+      method: options.method || 'GET',
+      error
+    });
+    // Return a fake response object to prevent "res is undefined" crashes
+    return {
+      ok: false,
+      status: 0,
+      statusText: "Network Error",
+      json: async () => ({ message: "Connection to terminal lost. Check uplink." }),
+      text: async () => "Network Error",
+    } as Response;
+  }
 }
 
 export const API_ENDPOINTS = {
