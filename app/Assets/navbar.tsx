@@ -54,13 +54,13 @@ export default function Navbar() {
     };
 
     const navLinks = [
-        { name: "Tournaments", href: "/Tournaments" },
-        { name: "Leaderboards", href: "/Leaderboards" },
+        { name: "Tournaments", href: "/tournaments" },
+        { name: "Leaderboards", href: "/leaderboards" },
     ];
 
     const isAdmin = user?.roles?.includes('ADMIN');
     if (isAdmin) {
-        navLinks.push({ name: "Admin", href: "/Admin" });
+        navLinks.push({ name: "Admin", href: "/admin" });
     }
 
     return (
@@ -114,7 +114,7 @@ export default function Navbar() {
                                         <p className="text-xs text-foreground/50 truncate uppercase tracking-widest mt-1">Logged In</p>
                                     </div>
                                     <Link 
-                                        href={`/Profile?id=${user.id || user.sub}`} 
+                                        href={`/profile/${user.id || user.sub}`} 
                                         onClick={() => setIsProfileMenuOpen(false)}
                                         className="px-4 py-3 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors flex items-center gap-3 uppercase tracking-wider"
                                     >
@@ -134,7 +134,7 @@ export default function Navbar() {
                     ) : (
                         /* Login Button (Desktop) */
                         <Link 
-                            href="/Auth" 
+                            href="/auth" 
                             className="hidden sm:block bg-primary text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/10 font-poppins"
                         >
                             Login
@@ -180,10 +180,10 @@ export default function Navbar() {
                         <>
                             <div className="w-16 h-px bg-foreground/10 my-4"></div>
                             <Link 
-                                href={`/Profile?id=${user.id || user.sub}`} 
+                                href={`/profile/${user.id || user.sub}`} 
                                 onClick={() => setIsMenuOpen(false)}
                                 className={`text-2xl font-black uppercase tracking-[0.3em] transition-all font-poppins flex items-center gap-3 ${
-                                    pathname.startsWith("/Profile") ? "text-primary" : "text-foreground"
+                                    pathname.startsWith("/profile") ? "text-primary" : "text-foreground"
                                 }`}
                             >
                                 <svg className="w-6 h-6 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -202,7 +202,7 @@ export default function Navbar() {
                     ) : (
                         /* Unstylized Login for Mobile */
                         <Link 
-                            href="/Auth" 
+                            href="/auth" 
                             onClick={() => setIsMenuOpen(false)}
                             className="text-2xl font-black uppercase tracking-[0.3em] transition-all font-poppins text-foreground mt-8"
                         >
