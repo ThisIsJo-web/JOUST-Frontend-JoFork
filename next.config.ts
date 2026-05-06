@@ -9,9 +9,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        `${hostIp}:3000`, 
-        `${hostIp}:4000`, 
-        `http://${hostIp}:3000`, 
+        `${hostIp}:3000`,
+        `${hostIp}:4000`,
+        `http://${hostIp}:3000`,
         `http://${hostIp}:4000`
       ]
     }
@@ -20,8 +20,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/backend/:path*",
-        // In Docker, we must use the service name 'server' to reach the backend from the 'new' container
-        destination: `http://server:4000/:path*`,
+        destination: `http://${hostIp}:4000/:path*`,
       },
     ];
   },

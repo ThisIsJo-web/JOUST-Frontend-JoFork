@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navbar from "../Assets/navbar";
-import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, API_URL } from "../utils/api";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -17,11 +17,10 @@ export default function AuthPage() {
     e.preventDefault();
     setMessage("");
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    const endpoint = mode === "login" ? "/auth/signin" : "/auth/signup";
+    const endpoint = mode === "login" ? API_ENDPOINTS.AUTH.SIGNIN : API_ENDPOINTS.AUTH.SIGNUP;
 
     try {
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

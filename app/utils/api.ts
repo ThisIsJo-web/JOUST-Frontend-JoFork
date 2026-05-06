@@ -1,12 +1,4 @@
-const API_URL = (() => {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  // Auto-discovery for local networking (Mobile support)
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    const protocol = window.location.protocol; // e.g. 'http:' or 'https:'
-    return `${protocol}//${window.location.hostname}:4000`;
-  }
-  return "http://localhost:4000";
-})();
+export const API_URL = "/api/backend";
 
 export async function safeJson(res: Response) {
   const text = await res.text();
