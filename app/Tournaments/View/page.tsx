@@ -54,7 +54,7 @@ function TournamentViewContent() {
       const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.sub }),
+        body: JSON.stringify({ userId: user.id }),
       });
       if (res.ok) {
         fetchData();
@@ -141,10 +141,17 @@ function TournamentViewContent() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <SpecBox label="Combat Format" value={tournament.format.replace("_", " ")} color="text-primary" />
                     <SpecBox label="Prize Pool" value={`₱${tournament.prizePool?.toLocaleString() || "0"}`} color="text-primary" />
                     <SpecBox label="Max Capacity" value={`${tournament.maxPlayers} Players`} color="text-primary" />
+                    {tournament.date && (
+                        <SpecBox 
+                            label="Schedule" 
+                            value={new Date(tournament.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} 
+                            color="text-primary" 
+                        />
+                    )}
                 </div>
             </div>
 

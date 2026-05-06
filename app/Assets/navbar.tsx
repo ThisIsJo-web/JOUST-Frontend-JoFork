@@ -55,7 +55,7 @@ export default function Navbar() {
 
     const navLinks = [
         { name: "Tournaments", href: "/Tournaments" },
-        { name: "Leaderboards", href: "/Leaderboards" },
+        { name: "Leaderboard", href: "/Leaderboard" },
     ];
 
     const isAdmin = user?.roles?.includes('ADMIN');

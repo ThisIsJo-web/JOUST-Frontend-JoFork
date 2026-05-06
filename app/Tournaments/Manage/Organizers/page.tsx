@@ -13,7 +13,7 @@ interface User {
 }
 
 interface CurrentUser {
-  sub: string;
+  id: string;
   email: string;
   roles: string[];
   username: string;
