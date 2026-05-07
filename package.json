@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "setup": "bash generate-env.sh",
+    "setup:win": "generate-env.bat",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
