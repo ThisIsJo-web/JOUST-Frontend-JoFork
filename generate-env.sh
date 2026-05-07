@@ -6,6 +6,15 @@
 # ─────────────────────────────────────────────────────────
 set -euo pipefail
 
+echo "Cleaning up .next and node_modules..."
+rm -rf .next node_modules
+
+echo "Installing dependencies..."
+npm install
+
+echo "Running npm audit fix..."
+npm audit fix
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env.local"
 

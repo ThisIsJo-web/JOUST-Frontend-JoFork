@@ -6,6 +6,16 @@ REM          generate-env.bat 10.0.0.42  (manual override)
 REM ─────────────────────────────────────────────────────────
 setlocal enabledelayedexpansion
 
+echo Cleaning up .next and node_modules...
+if exist .next rd /s /q .next
+if exist node_modules rd /s /q node_modules
+
+echo Installing dependencies...
+call npm install
+
+echo Running npm audit fix...
+call npm audit fix
+
 set "SCRIPT_DIR=%~dp0"
 set "ENV_FILE=%SCRIPT_DIR%.env.local"
 
