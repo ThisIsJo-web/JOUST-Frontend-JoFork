@@ -22,7 +22,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
     if (!selectedTournament) return;
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_URL}/dev/batch-guests/${selectedTournament}`, {
+      const res = await authenticatedFetch(API_ENDPOINTS.DEV.BATCH_GUESTS(selectedTournament), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ count: guestCount }),
@@ -46,7 +46,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
   const handleUpdateExpiry = async () => {
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_URL}/dev/config/guest-expiry`, {
+      const res = await authenticatedFetch(API_ENDPOINTS.DEV.GUEST_EXPIRY, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ days: expiryDays }),
@@ -68,7 +68,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
     if (!confirm(`Are you sure you want to PERMANENTLY DELETE tournament "${name}"? This cannot be undone.`)) return;
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${process.env.NEXT_PUBLIC_API_URL}/dev/tournament/${id}`, {
+      const res = await authenticatedFetch(API_ENDPOINTS.DEV.DELETE_TOURNAMENT(id), {
         method: "DELETE"
       });
       if (res.ok) {
@@ -94,7 +94,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
         
         <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-8 flex items-center gap-4">
           <span className="h-px w-8 bg-primary/30"></span>
-          Simulated Combatant Injection
+          Player Simulation Tools
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
@@ -126,7 +126,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
                 disabled={loading || !selectedTournament}
                 className="px-8 py-3 bg-primary text-background text-[10px] font-black uppercase tracking-widest hover:brightness-110 disabled:opacity-50 transition-all active:scale-95"
               >
-                {loading ? "Injecting..." : "Inject Guests"}
+                {loading ? "Adding..." : "Add Guests"}
               </button>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
       <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-none relative group overflow-hidden">
         <h2 className="text-xs font-black uppercase tracking-[0.3em] text-amber-500 mb-8 flex items-center gap-4">
           <span className="h-px w-8 bg-amber-500/30"></span>
-          System Policy Overrides
+          System Configuration
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
@@ -165,7 +165,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
       <div className="bg-neutral-900 border border-neutral-800 p-8 rounded-none relative group overflow-hidden">
         <h2 className="text-xs font-black uppercase tracking-[0.3em] text-red-500 mb-8 flex items-center gap-4">
           <span className="h-px w-8 bg-red-500/30"></span>
-          Destructive Overrides
+          System Management
         </h2>
 
         <div className="overflow-x-auto">
@@ -174,7 +174,7 @@ export default function DevPanel({ tournaments, onRefresh }: Props) {
               <tr>
                 <th className="py-4 px-2">Tournament Name</th>
                 <th className="py-4 px-2">Status</th>
-                <th className="py-4 px-2 text-right">Emergency Purge</th>
+                <th className="py-4 px-2 text-right">Delete</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800">

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "node setup.js",
-    "setup:win": "generate-env.bat",
+    "setup:win": "node setup.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

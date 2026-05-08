@@ -38,7 +38,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
       ok: false,
       status: 0,
       statusText: "Network Error",
-      json: async () => ({ message: "Connection to terminal lost. Check uplink." }),
+      json: async () => ({ message: "Connection to server lost. Check network connection." }),
       text: async () => "Network Error",
     } as Response;
   }
@@ -86,5 +86,10 @@ export const API_ENDPOINTS = {
     SUBMIT: (id: string) => `/matches/${id}/submit`,
     GET_ONE: (id: string) => `/matches/${id}`,
     BY_ROUND: (roundId: string) => `/matches/round/${roundId}`,
+  },
+  DEV: {
+    BATCH_GUESTS: (tournamentId: string) => `/dev/batch-guests/${tournamentId}`,
+    GUEST_EXPIRY: '/dev/config/guest-expiry',
+    DELETE_TOURNAMENT: (id: string) => `/dev/tournament/${id}`,
   }
 };
