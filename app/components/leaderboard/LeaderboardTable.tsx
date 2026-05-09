@@ -34,12 +34,12 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-foreground/5 text-[10px] font-black text-foreground/40 uppercase tracking-[0.4em] font-poppins">
-            <th className="py-5 px-8 w-24">Pos</th>
-            <th className="py-5 px-4">Pilot</th>
-            <th className="py-5 px-8 text-center w-40 hidden md:table-cell">Score</th>
-            <th className="py-5 px-8 text-center w-40 hidden md:table-cell">Events</th>
-            <th className="py-5 px-8 text-center w-40 hidden lg:table-cell">Record</th>
-            <th className="py-5 px-8 text-right w-40">Win rate</th>
+            <th className="py-4 px-4 md:px-8 w-16 md:w-24">Pos</th>
+            <th className="py-4 px-2 md:px-4">User</th>
+            <th className="py-4 px-8 text-center w-40 hidden md:table-cell">Score</th>
+            <th className="py-4 px-8 text-center w-40 hidden md:table-cell">Events</th>
+            <th className="py-4 px-8 text-center w-40 hidden lg:table-cell">Record</th>
+            <th className="py-4 px-4 md:px-8 text-right w-32 md:w-40">Win rate</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-foreground/5">
@@ -48,16 +48,16 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
               key={entry.userId} 
               className="group hover:bg-primary/5 transition-colors cursor-default"
             >
-              <td className="py-6 px-8">
-                <span className={`text-xl font-black font-poppins ${
+              <td className="py-5 px-4 md:px-8">
+                <span className={`text-lg md:text-xl font-black font-poppins ${
                   entry.rank <= 3 ? 'text-primary' : 'text-foreground/30'
                 }`}>
                   #{entry.rank.toString().padStart(2, '0')}
                 </span>
               </td>
-              <td className="py-6 px-4">
+              <td className="py-5 px-2 md:px-4">
                 <div className="flex flex-col">
-                  <span className="text-xl font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors font-poppins">
+                  <span className="text-lg md:text-xl font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors font-poppins truncate max-w-[120px] md:max-w-none">
                     {entry.username}
                   </span>
                   <span className="text-[9px] font-black uppercase tracking-widest text-foreground/20 md:hidden font-poppins">
@@ -78,12 +78,12 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
               <td className="py-6 px-8 text-center hidden lg:table-cell text-foreground/20 font-black font-poppins">
                 {entry.wins}-{entry.draws || 0}-{entry.losses}
               </td>
-              <td className="py-6 px-8 text-right">
+              <td className="py-5 px-4 md:px-8 text-right">
                 <div className="flex flex-col items-end font-poppins">
-                  <span className="text-xl font-black text-primary-light">
+                  <span className="text-lg md:text-xl font-black text-primary-light">
                     {(entry.matchWinPct * 100).toFixed(0)}%
                   </span>
-                  <div className="w-16 h-1 bg-foreground/5 mt-1 overflow-hidden">
+                  <div className="w-12 md:w-16 h-1 bg-foreground/5 mt-1 overflow-hidden">
                     <div 
                       className="h-full bg-primary transition-all duration-1000" 
                       style={{ width: `${entry.matchWinPct * 100}%` }}

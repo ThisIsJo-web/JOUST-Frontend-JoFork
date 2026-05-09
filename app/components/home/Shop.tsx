@@ -42,14 +42,14 @@ export default function Shop({
 
   return (
     <HomeFrame className="py-24">
-      <div className="max-w-7xl mx-auto px-8 mb-16 flex items-end justify-between">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
         <SectionHeader 
           title="Marketplace" 
-          subtitle="A curated showcase of premium gear and collectibles. Explore the latest additions to our external collections." 
-          accent="COLLECTIONS"
+          subtitle="Curated Collections" 
+          className="mb-0"
         />
 
-        <div className="flex gap-4 mb-4 font-poppins">
+        <div className="flex gap-4 md:mb-4 font-poppins">
           <button 
             onClick={() => scroll("left")}
             className="w-14 h-14 border border-foreground/10 flex items-center justify-center hover:bg-foreground/5 transition-all active:scale-90"

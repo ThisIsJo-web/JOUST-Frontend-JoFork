@@ -25,6 +25,8 @@ export const viewport: Viewport = {
 
 import Navibar from "./components/Navibar";
 import { UserProvider } from "./components/UserProvider";
+import MobileTopBar from "./components/mobile/MobileTopBar";
+import MobileBottomNav from "./components/mobile/MobileBottomNav";
 
 export default function RootLayout({
   children,
@@ -38,10 +40,24 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground tracking-tight selection:bg-primary selection:text-background">
         <UserProvider>
-          <Navibar />
-          <main className="flex-grow">
+          {/* Desktop Navigation */}
+          <div className="hidden md:block">
+            <Navibar />
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <MobileTopBar />
+          </div>
+
+          <main className="flex-grow pb-20 md:pb-0">
             {children}
           </main>
+
+          {/* Mobile Bottom Navigation */}
+          <div className="md:hidden">
+            <MobileBottomNav />
+          </div>
         </UserProvider>
       </body>
     </html>

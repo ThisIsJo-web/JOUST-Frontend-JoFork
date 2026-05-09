@@ -19,10 +19,10 @@ export default function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className={`mb-12 ${className} ${centered ? "text-center mx-auto" : ""}`}>
-      <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em] mb-4 block font-poppins">
+      <span className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-4 block font-poppins">
         {subtitle}
       </span>
-      <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-foreground mb-6 leading-none font-poppins">
+      <h2 className="text-3xl md:text-7xl font-black uppercase tracking-tighter text-foreground mb-6 leading-none font-poppins break-words">
         {title}
       </h2>
     </div>

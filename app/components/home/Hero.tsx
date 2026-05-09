@@ -83,7 +83,7 @@ export default function Hero({
   const animationClass = skipAnimation ? "" : "animate-slide-up";
 
   return (
-    <section className="relative h-[90vh] min-h-[700px] w-full overflow-hidden bg-black font-questrial">
+    <section className="relative h-[80vh] md:h-[90vh] min-h-[500px] md:min-h-[700px] w-full overflow-hidden bg-black font-questrial">
       {/* Background Slideshow */}
       <div className="absolute inset-0 z-0">
         {slides.map((slide, idx) => (
@@ -106,18 +106,18 @@ export default function Hero({
         <div className={`mb-8 ${skipAnimation ? "" : "animate-in fade-in zoom-in duration-1000"}`}>
           <Image 
             src={logo} 
-            width={320} 
-            height={320} 
+            width={240} 
+            height={240} 
             alt="Hobby+ Logo" 
             priority
-            className="drop-shadow-[0_0_30px_rgba(82,185,70,0.2)]"
+            className="w-48 md:w-80 drop-shadow-[0_0_30px_rgba(82,185,70,0.2)]"
             style={{ height: 'auto' }}
           />
         </div>
 
         {/* Content Block */}
         <div className={`max-w-2xl space-y-10 ${animationClass}`}>
-          <p className="text-foreground/60 text-xl md:text-2xl font-medium tracking-tight leading-relaxed font-questrial">
+          <p className="text-foreground/60 text-lg md:text-2xl font-medium tracking-tight leading-relaxed font-questrial max-w-lg md:max-w-2xl">
             {description}
           </p>
 

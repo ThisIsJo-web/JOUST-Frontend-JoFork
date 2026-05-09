@@ -58,7 +58,7 @@ export default function TournamentPreview({ tournaments = [] }: TournamentPrevie
                   </span>
                 </div>
                 
-                <h4 className="text-5xl md:text-6xl font-black tracking-tighter uppercase text-foreground group-hover:text-primary transition-colors leading-none font-poppins">
+                <h4 className="text-3xl md:text-6xl font-black tracking-tighter uppercase text-foreground group-hover:text-primary transition-colors leading-none font-poppins">
                   {featured.name}
                 </h4>
 

@@ -14,7 +14,6 @@ export default function Navibar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, refreshUser } = useUser();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -148,63 +147,6 @@ export default function Navibar() {
             </Link>
           )}
 
-          {/* Mobile Toggle */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden w-10 h-10 flex items-center justify-center text-foreground/60 hover:text-foreground transition-colors"
-            aria-label="Toggle Navigation"
-          >
-            <div className="space-y-1.5">
-              <span className={`block h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-2" : "w-6"}`} />
-              <span className={`block h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`} />
-              <span className={`block h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-1" : "w-5"}`} />
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      <div className={`fixed inset-0 z-40 bg-background transition-all duration-500 md:hidden ${
-        isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
-      }`}>
-        {/* Subtle Background Pattern */}
-        <div className="absolute inset-0 z-0 opacity-5 pointer-events-none">
-          <div className="h-full w-full bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)]" />
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-12">
-          {navLinks.map((link, idx) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={() => setIsMenuOpen(false)}
-              className={`text-4xl font-black uppercase tracking-tighter transition-all duration-500 font-poppins ${
-                pathname === link.href ? "text-primary translate-x-4" : "text-foreground/40 hover:text-foreground"
-              }`}
-              style={{ transitionDelay: `${idx * 50}ms` }}
-            >
-              {link.name}
-            </Link>
-          ))}
-          
-          <div className="w-12 h-px bg-foreground/10" />
-          
-          {user ? (
-            <button
-              onClick={handleSignOut}
-              className="text-xl font-black uppercase tracking-[0.4em] text-red-500/60 hover:text-red-500 transition-colors"
-            >
-              Log Out
-            </button>
-          ) : (
-            <Link
-              href="/auth"
-              onClick={() => setIsMenuOpen(false)}
-              className="text-xl font-black uppercase tracking-[0.4em] text-primary hover:text-primary/80 transition-colors"
-            >
-              Login
-            </Link>
-          )}
         </div>
       </div>
     </header>
