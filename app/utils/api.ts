@@ -82,6 +82,10 @@ export const API_ENDPOINTS = {
     DETAILS: '/formats/details',
     DETAILS_BY_FORMAT: (format: string) => `/formats/details/${format}`,
   },
+  CARD_GAMES: {
+    LIST: '/card-games',
+    CREATE: '/card-games',
+  },
   MATCHES: {
     SUBMIT: (id: string) => `/matches/${id}/submit`,
     GET_ONE: (id: string) => `/matches/${id}`,

@@ -1,3 +1,9 @@
+export interface CardGame {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -16,6 +22,8 @@ export interface Tournament {
   createdBy?: {
     username: string;
   };
+  cardGameId?: string;
+  cardGame?: CardGame;
   participants: {
     id: string;
     userId: string;
@@ -52,6 +60,10 @@ export interface FormatConfig {
   pointsThreshold?: number;
   sessionsCount?: number;
   pointsPerSession?: number;
+  bestOf?: number;
+  allowDraw?: boolean;
+  tieBreakerOrder?: string[];
+  progressionType?: string;
 }
 
 export interface FormatDefinition {
