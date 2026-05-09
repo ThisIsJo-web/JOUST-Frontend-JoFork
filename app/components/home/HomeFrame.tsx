@@ -16,7 +16,7 @@ export default function HomeFrame({
   showPattern = true 
 }: HomeFrameProps) {
   return (
-    <div className={`relative w-full overflow-hidden border-b border-foreground/5 bg-[#0A0A0A] ${className}`}>
+    <div className={`relative w-full overflow-hidden border-b border-foreground/5 bg-background ${className}`}>
       {/* Background Abstraction Pattern */}
       {showPattern && (
         <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none overflow-hidden">

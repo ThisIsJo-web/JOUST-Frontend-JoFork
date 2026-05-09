@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import * as m from "motion/react";
 
 interface LeaderboardEntry {
   rank: number;
@@ -30,7 +31,7 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
   }
 
   return (
-    <div className="w-full overflow-hidden border border-foreground/10 bg-[#0A0A0A]/50 font-questrial">
+    <div className="w-full overflow-hidden border border-foreground/10 bg-background/50 font-questrial">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-foreground/5 text-[10px] font-black text-foreground/40 uppercase tracking-[0.4em] font-poppins">
@@ -43,9 +44,13 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
           </tr>
         </thead>
         <tbody className="divide-y divide-foreground/5">
-          {entries.map((entry) => (
-            <tr 
+          {entries.map((entry, idx) => (
+            <m.motion.tr 
               key={entry.userId} 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3) }}
               className="group hover:bg-primary/5 transition-colors cursor-default"
             >
               <td className="py-5 px-4 md:px-8">
@@ -91,7 +96,7 @@ export default function LeaderboardTable({ entries, loading }: LeaderboardTableP
                   </div>
                 </div>
               </td>
-            </tr>
+            </m.motion.tr>
           ))}
         </tbody>
       </table>

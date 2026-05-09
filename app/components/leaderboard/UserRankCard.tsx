@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import * as m from "motion/react";
 
 interface UserRankProps {
   stats: {
@@ -31,7 +32,13 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
   if (!stats) return null;
 
   return (
-    <div className="group relative w-full bg-[#0A0A0A] border border-foreground/10 p-8 md:p-12 overflow-hidden transition-all duration-500 hover:border-primary/40 font-questrial">
+    <m.motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="group relative w-full bg-background border border-foreground/10 p-8 md:p-12 overflow-hidden transition-all duration-500 hover:border-primary/40 font-questrial"
+    >
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
@@ -75,6 +82,6 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
 
       {/* Decorative Corner Element */}
       <div className="absolute bottom-0 right-0 w-12 h-12 bg-primary/5 skew-x-12 translate-x-6 translate-y-6" />
-    </div>
+    </m.motion.div>
   );
 }

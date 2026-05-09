@@ -68,7 +68,7 @@ function LeaderboardsContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <HomeFrame className="pt-32 pb-20">
+      <HomeFrame className="pt-32 pb-20" showPattern={false}>
         <StaggerContainer className="max-w-7xl mx-auto px-8">
           <FadeIn>
             <SectionHeader 

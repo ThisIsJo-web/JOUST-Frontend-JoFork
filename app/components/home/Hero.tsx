@@ -83,7 +83,7 @@ export default function Hero({
   const animationClass = skipAnimation ? "" : "animate-slide-up";
 
   return (
-    <section className="relative h-[80vh] md:h-[90vh] min-h-[500px] md:min-h-[700px] w-full overflow-hidden bg-black font-questrial">
+    <section className="relative h-[80vh] md:h-[90vh] min-h-[500px] md:min-h-[700px] w-full overflow-hidden bg-background font-questrial">
       {/* Background Slideshow */}
       <div className="absolute inset-0 z-0">
         {slides.map((slide, idx) => (
