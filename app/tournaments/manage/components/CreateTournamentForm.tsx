@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
+import CardGameModal from "../../components/CardGameModal";
 
 const inputCls = "w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none";
 
@@ -30,6 +31,21 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
   const [startTime, setStartTime]     = useState("");
   const [startNow, setStartNow]       = useState(true);
   const [isPrivate, setIsPrivate]     = useState(false);
+  const [cardGames, setCardGames]     = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
+  const [selectedCardGameId, setSelectedCardGameId] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const loadCardGames = async () => {
+    const res = await authenticatedFetch(API_ENDPOINTS.CARD_GAMES.LIST);
+    if (res.ok) {
+      const data = await safeJson(res);
+      setCardGames(data ?? []);
+    }
+  };
+
+  useEffect(() => {
+    loadCardGames();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +55,17 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name, format,
-        maxPlayers:  Number(maxPlayers),
-        prizePool:   prizePool   === "" ? null : Number(prizePool),
+        name,
+        format,
+        maxPlayers: Number(maxPlayers),
+        prizePool: prizePool === "" ? null : Number(prizePool),
         entranceFee: entranceFee === "" ? null : Number(entranceFee),
-        venue, date: finalDate, isPrivate, startNow,
+        venue,
+        date: finalDate,
+        isPrivate,
+        startNow,
         createdById: userId,
+        ...(selectedCardGameId ? { cardGameId: selectedCardGameId } : {}),
       }),
     });
 
@@ -57,58 +78,109 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
   };
 
   return (
-    <div className="mb-12 bg-foreground/5 border border-primary/20 p-8 md:p-12 rounded-[2.5rem] animate-in fade-in zoom-in duration-500">
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <Field label="Arena Name">
-          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="E.G. PRO LEAGUE" className={inputCls} required />
-        </Field>
-        <Field label="Combat Format">
-          <select value={format} onChange={e => setFormat(e.target.value)} className={inputCls}>
-            <option value="SINGLE_ELIMINATION">SINGLE ELIMINATION</option>
-            <option value="DOUBLE_ELIMINATION">DOUBLE ELIMINATION</option>
-            <option value="SWISS">SWISS</option>
-            <option value="ROUND_ROBIN">ROUND ROBIN</option>
-          </select>
-        </Field>
-        <Field label="Max Capacity">
-          <input type="number" value={maxPlayers} onChange={e => setMaxPlayers(Number(e.target.value))} className={inputCls} required />
-        </Field>
-        <Field label="Prize Pool (₱)">
-          <input type="number" value={prizePool} onChange={e => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="OPTIONAL" className={inputCls} />
-        </Field>
-        <Field label="Arena Venue">
-          <input type="text" value={venue} onChange={e => setVenue(e.target.value)} placeholder="E.G. MADISON SQUARE" className={inputCls} />
-        </Field>
-        <Field label="Event Date">
-          <input type="date" value={date} onChange={e => { setDate(e.target.value); if (e.target.value) setStartNow(false); }} className={inputCls} />
-        </Field>
-        <Field label="Start Time">
-          <input type="time" value={startTime} onChange={e => { setStartTime(e.target.value); if (e.target.value) setStartNow(false); }} className={inputCls} />
-        </Field>
-        <Field label="Entrance Fee (₱)">
-          <input type="number" value={entranceFee} onChange={e => setEntranceFee(e.target.value === "" ? "" : Number(e.target.value))} placeholder="OPTIONAL" className={inputCls} />
-        </Field>
-
-        <div className="flex flex-col gap-4 py-2">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} className="w-6 h-6 accent-primary bg-background border-foreground/10 rounded-lg" />
-            <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-primary transition-colors">Private Arena</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input type="checkbox" checked={startNow} onChange={e => setStartNow(e.target.checked)} className="w-6 h-6 accent-green-500 bg-background border-foreground/10 rounded-lg" />
-            <span className="text-[10px] font-black text-foreground/60 uppercase tracking-widest font-poppins group-hover:text-green-500 transition-colors">Start Now (Open Registration)</span>
-          </label>
+    <div className="mb-12 bg-white/[0.02] backdrop-blur-md border border-white/[0.05] p-10 md:p-16 rounded-[3rem] animate-in fade-in zoom-in duration-700">
+      <form onSubmit={handleSubmit} className="space-y-16">
+        {/* Step 1: Card Game Picker - Sleek Header Style */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-12 border-b border-white/[0.05]">
+          <div className="max-w-md">
+            <h3 className="text-xl md:text-2xl font-black text-foreground font-poppins tracking-tight mb-2">Initialize Combat Zone</h3>
+            <p className="text-xs text-foreground/40 font-questrial leading-relaxed">Select the core card game to unlock full terminal configuration.</p>
+          </div>
+          
+          <div className="flex-1 max-w-sm flex gap-3">
+            <div className="relative flex-1 group">
+              <select 
+                value={selectedCardGameId} 
+                onChange={e => setSelectedCardGameId(e.target.value)} 
+                className={`${inputCls} !h-16 !px-8 !bg-primary/[0.03] !border-primary/20 focus:!border-primary/60 !text-primary font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/5 transition-all group-hover:scale-[1.02]`}
+              >
+                <option value="" className="bg-background text-foreground/60">Select Game</option>
+                {cardGames.map((game) => (
+                  <option key={game.id} value={game.id} className="bg-background text-foreground font-black">{game.name.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(true)}
+              className="h-16 w-16 flex items-center justify-center bg-primary text-white rounded-2xl hover:brightness-110 active:scale-90 transition-all text-2xl font-light shadow-xl shadow-primary/30"
+              title="Add Custom Game"
+            >
+              +
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-end gap-4">
-          <button type="submit" className="flex-1 h-14 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
-            Initialize Arena
-          </button>
-          <button type="button" onClick={onDiscard} className="h-14 px-6 bg-foreground/5 text-foreground/40 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-foreground/10 transition-all">
-            Discard
-          </button>
+        {/* Locked Details Section */}
+        <div className={`space-y-12 transition-all duration-700 ${!selectedCardGameId ? "opacity-10 grayscale blur-sm pointer-events-none translate-y-4" : "opacity-100 translate-y-0"}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+            <Field label="Arena Designation">
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="E.G. CHAMPIONSHIP ALPHA" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} required />
+            </Field>
+            <Field label="Combat Format">
+              <select value={format} onChange={e => setFormat(e.target.value)} className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`}>
+                <option value="SINGLE_ELIMINATION" className="bg-background">SINGLE ELIMINATION</option>
+                <option value="DOUBLE_ELIMINATION" className="bg-background">DOUBLE ELIMINATION</option>
+                <option value="SWISS" className="bg-background">SWISS</option>
+                <option value="ROUND_ROBIN" className="bg-background">ROUND ROBIN</option>
+              </select>
+            </Field>
+            <Field label="Max Capacity">
+              <input type="number" value={maxPlayers} onChange={e => setMaxPlayers(Number(e.target.value))} className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} required />
+            </Field>
+            <Field label="Prize Pool (₱)">
+              <input type="number" value={prizePool} onChange={e => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="0.00" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} />
+            </Field>
+            <Field label="Arena Venue">
+              <input type="text" value={venue} onChange={e => setVenue(e.target.value)} placeholder="E.G. VIRTUAL STADIUM" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} />
+            </Field>
+            <Field label="Operational Date">
+              <div className="flex gap-2">
+                <input type="date" value={date} onChange={e => { setDate(e.target.value); if (e.target.value) setStartNow(false); }} className={`${inputCls} bg-transparent border-white/10 hover:border-white/20 flex-1`} />
+                <input type="time" value={startTime} onChange={e => { setStartTime(e.target.value); if (e.target.value) setStartNow(false); }} className={`${inputCls} bg-transparent border-white/10 hover:border-white/20 w-32`} />
+              </div>
+            </Field>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-12 border-t border-white/[0.05]">
+            <div className="flex gap-12">
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className={`w-6 h-6 rounded-lg border-2 border-white/20 flex items-center justify-center transition-all group-hover:border-primary ${isPrivate ? "bg-primary border-primary shadow-lg shadow-primary/20" : ""}`}>
+                  {isPrivate && <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
+                </div>
+                <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} className="hidden" />
+                <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] group-hover:text-foreground transition-colors">Private Mode</span>
+              </label>
+              
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className={`w-6 h-6 rounded-lg border-2 border-white/20 flex items-center justify-center transition-all group-hover:border-green-500 ${startNow ? "bg-green-500 border-green-500 shadow-lg shadow-green-500/20" : ""}`}>
+                  {startNow && <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
+                </div>
+                <input type="checkbox" checked={startNow} onChange={e => setStartNow(e.target.checked)} className="hidden" />
+                <span className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] group-hover:text-foreground transition-colors">Immediate Deployment</span>
+              </label>
+            </div>
+
+            <div className="flex gap-4 w-full md:w-auto">
+              <button type="button" onClick={onDiscard} className="px-10 py-5 bg-white/5 text-foreground/40 font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl hover:bg-white/10 hover:text-foreground transition-all">
+                Discard
+              </button>
+              <button type="submit" className="flex-1 md:flex-none md:px-16 h-16 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-2xl shadow-primary/20">
+                Initialize Arena
+              </button>
+            </div>
+          </div>
         </div>
       </form>
+
+      <CardGameModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={(newGame) => {
+          setCardGames(prev => [...prev, newGame]);
+          setSelectedCardGameId(newGame.id);
+        }}
+      />
     </div>
   );
 }

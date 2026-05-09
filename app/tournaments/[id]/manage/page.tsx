@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
-import { Tournament } from "../../types";
+import { Tournament, FormatConfig } from "../../types";
 import ControlRoomHeader from "./components/ControlRoomHeader";
 import RosterPanel from "./components/RosterPanel";
 import SpecsPanel from "./components/SpecsPanel";
@@ -24,9 +24,10 @@ function ControlRoomContent() {
 
   const [isEditing, setIsEditing]           = useState(false);
   const [isEditingRules, setIsEditingRules] = useState(false);
-  const [formatConfig, setFormatConfig]     = useState<any>({});
+  const [formatConfig, setFormatConfig]     = useState<FormatConfig>({});
   const [formatDefinitions, setFormatDefinitions] = useState<any[]>([]);
-  const [editState, setEditState] = useState({ name: "", format: "", maxPlayers: 0, prizePool: "" as number | "", isPrivate: false });
+  const [cardGames, setCardGames] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
+  const [editState, setEditState] = useState({ name: "", format: "", maxPlayers: 0, prizePool: "" as number | "", isPrivate: false, cardGameId: "" });
 
   const [guestUsername, setGuestUsername]     = useState("");
   const [batchGuestCount, setBatchGuestCount] = useState<number | "">("");
@@ -43,6 +44,11 @@ function ControlRoomContent() {
     if (res.ok) { const data = await safeJson(res); setFormatDefinitions(data?.formats ?? []); }
   };
 
+  const fetchCardGames = async () => {
+    const res = await authenticatedFetch(API_ENDPOINTS.CARD_GAMES.LIST);
+    if (res.ok) { const data = await safeJson(res); setCardGames(data ?? []); }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -54,11 +60,20 @@ function ControlRoomContent() {
       const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.REGISTERED_USERS);
       if (usersRes.ok) setAllUsers(await safeJson(usersRes) ?? []);
 
+      await fetchCardGames();
+
       const tRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!));
       if (tRes.ok) {
         const t = await safeJson(tRes);
         setTournament(t);
-        setEditState({ name: t.name, format: t.format, maxPlayers: t.maxPlayers, prizePool: t.prizePool || "", isPrivate: t.isPrivate || false });
+        setEditState({
+          name: t.name,
+          format: t.format,
+          maxPlayers: t.maxPlayers,
+          prizePool: t.prizePool || "",
+          isPrivate: t.isPrivate || false,
+          cardGameId: t.cardGame?.id || "",
+        });
         setFormatConfig(t.formatConfig || {});
       } else { setMessage("Tournament not found"); }
     } catch { setMessage("Failed to load data"); }
@@ -67,10 +82,20 @@ function ControlRoomContent() {
 
   const handleUpdateTournament = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    const body: any = {
+      name: editState.name,
+      format: editState.format,
+      maxPlayers: Number(editState.maxPlayers),
+      prizePool: editState.prizePool === "" ? null : Number(editState.prizePool),
+      isPrivate: editState.isPrivate,
+      formatConfig,
+      cardGameId: editState.cardGameId || null,
+    };
+
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...editState, maxPlayers: Number(editState.maxPlayers), prizePool: editState.prizePool === "" ? null : Number(editState.prizePool), formatConfig }),
+      body: JSON.stringify(body),
     });
     if (res.ok) { setMessage("Arena Specs Updated"); setIsEditing(false); setIsEditingRules(false); fetchData(); }
     else { setMessage("Update failed"); }
@@ -220,6 +245,7 @@ function ControlRoomContent() {
               tournamentId={tournamentId!}
               isEditing={isEditing}
               editState={editState}
+              cardGames={cardGames}
               onToggleEdit={() => setIsEditing(v => !v)}
               onEditChange={(field, value) => setEditState(prev => ({ ...prev, [field]: value }))}
               onSubmit={handleUpdateTournament}
@@ -227,6 +253,7 @@ function ControlRoomContent() {
               onStartTournament={handleStartTournament}
               fetchData={fetchData}
               setMessage={setMessage}
+              onCardGameAdded={(newGame) => setCardGames(prev => [...prev, newGame])}
             />
             <FormatRulesPanel
               tournament={tournament}
@@ -235,7 +262,7 @@ function ControlRoomContent() {
               formatConfig={formatConfig}
               onToggleEdit={() => setIsEditingRules(true)}
               onDiscard={() => { setIsEditingRules(false); setFormatConfig(tournament.formatConfig || {}); }}
-              onRuleChange={(key, value) => setFormatConfig((prev: any) => ({ ...prev, [key]: value === "" ? null : Number(value) }))}
+              onRuleChange={(key, value) => setFormatConfig((prev: any) => ({ ...prev, [key]: value }))}
               onSave={handleUpdateTournament}
             />
             <DeploymentPanel
