@@ -10,11 +10,11 @@ export default function MatchHistory() {
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-gradient-to-br from-foreground/5 to-transparent border border-primary/10 rounded-none p-8 md:p-10 flex flex-col min-h-[400px]"
+      className="bg-gradient-to-br from-primary/10 via-background to-transparent border border-primary/20 rounded-none p-8 md:p-10 flex flex-col min-h-[400px] shadow-[inset_0_0_20px_var(--color-primary-glow)]"
     >
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-xl font-black uppercase tracking-widest text-foreground font-poppins flex items-center gap-3">
-          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <svg className="w-6 h-6 text-primary shadow-[0_0_10px_var(--color-primary-glow)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Match History
         </h3>
         <span className="text-[10px] text-foreground/30 font-black uppercase tracking-widest">Recent 10</span>

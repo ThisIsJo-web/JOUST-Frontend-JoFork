@@ -17,7 +17,6 @@ interface UserRankProps {
 
 /**
  * UserRankCard - A high-fidelity card showcasing the current user's global status.
- * Designed for reuse across Leaderboards, Profile, and Home pages.
  */
 export default function UserRankCard({ stats, loading }: UserRankProps) {
   if (loading) {
@@ -37,11 +36,11 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="group relative w-full bg-background border border-foreground/10 p-8 md:p-12 overflow-hidden transition-all duration-500 hover:border-primary/40 font-questrial"
+      className="group relative w-full bg-background border border-foreground/10 p-8 md:p-12 overflow-hidden transition-all duration-500 hover:border-primary/40 font-questrial shadow-[0_0_20px_rgba(var(--color-primary),0.05)]"
     >
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
       
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
         <div className="text-center md:text-left space-y-4">
@@ -65,15 +64,15 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
         <div className="grid grid-cols-3 gap-8 md:gap-16 border-t md:border-t-0 md:border-l border-foreground/10 pt-10 md:pt-0 md:pl-16 w-full md:w-auto font-poppins">
           <div className="text-center md:text-left">
             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Wins</p>
-            <p className="text-3xl font-black text-foreground">{stats.wins}</p>
+            <p className="text-3xl font-black text-primary-light">{stats.wins}</p>
           </div>
           <div className="text-center md:text-left">
             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Losses</p>
-            <p className="text-3xl font-black text-foreground">{stats.losses}</p>
+            <p className="text-3xl font-black text-foreground/60">{stats.losses}</p>
           </div>
           <div className="text-center md:text-left">
             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Ratio</p>
-            <p className="text-3xl font-black text-primary-light">
+            <p className="text-3xl font-black text-primary">
               {(stats.matchWinPct * 100).toFixed(1)}%
             </p>
           </div>

@@ -1,7 +1,5 @@
 "use client";
 import { useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import HomeFrame from "./HomeFrame";
 import SectionHeader from "./SectionHeader";
 

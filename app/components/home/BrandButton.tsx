@@ -18,7 +18,7 @@ export default function BrandButton({ text, href, bgColor, icon, className = "" 
       href={href} 
       target="_blank" 
       rel="noopener noreferrer"
-      className={`group flex items-center gap-3 px-8 py-4 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:-translate-y-1 ${className}`}
+      className={`group relative flex items-center gap-3 px-8 py-4 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:-translate-y-1 ${className}`}
       style={{ backgroundColor: bgColor }}
     >
       {icon && (

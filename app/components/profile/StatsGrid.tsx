@@ -37,9 +37,9 @@ export default function StatsGrid({ stats }: StatsGridProps) {
 
   const statItems = [
     { label: "Total Points", value: stats.points, color: "text-primary" },
-    { label: "Tournaments", value: stats.tournamentsPlayed, color: "text-primary" },
-    { label: "Matches Won", value: stats.wins, color: "text-green-500" },
-    { label: "Matches Lost", value: stats.losses, color: "text-red-500" },
+    { label: "Tournaments", value: stats.tournamentsPlayed, color: "text-foreground/80" },
+    { label: "Matches Won", value: stats.wins, color: "text-primary-light" },
+    { label: "Win Ratio", value: `${(stats.matchWinPct * 100).toFixed(0)}%`, color: "text-primary" },
   ];
 
   return (
@@ -51,9 +51,9 @@ export default function StatsGrid({ stats }: StatsGridProps) {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: idx * 0.1 }}
-          className="bg-primary/5 rounded-none border border-primary/10 p-6 flex flex-col justify-center items-center hover:bg-primary/10 transition-colors group"
+          className="bg-foreground/[0.02] rounded-none border border-foreground/10 p-6 flex flex-col justify-center items-center hover:bg-foreground/[0.05] hover:border-primary/20 transition-all duration-300 group shadow-[0_0_15px_rgba(var(--color-primary),0.02)]"
         >
-          <span className="text-primary/60 text-[10px] font-black uppercase tracking-widest mb-2 group-hover:text-primary transition-colors">
+          <span className="text-foreground/30 text-[10px] font-black uppercase tracking-widest mb-2 group-hover:text-foreground/50 transition-colors">
             {item.label}
           </span>
           <span className={`text-3xl md:text-4xl font-black ${item.color}`}>

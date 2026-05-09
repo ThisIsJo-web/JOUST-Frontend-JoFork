@@ -11,26 +11,34 @@
   --font-poppins: var(--font-poppins);
   --font-questrial: var(--font-questrial);
   
-  /* Primary Green Palette */
+  /* Primary Neutral Green */
   --color-primary: #52B946;
   --color-primary-light: #7EE074;
   --color-primary-dark: #3E8D35;
   --color-primary-glow: rgba(82, 185, 70, 0.4);
 
-  /* New Accents for Depth */
-  --color-accent-amber: #FFB800;
-  --color-accent-teal: #00F0FF;
+  /* Ranking Colors (All Green Tones) */
+  --color-rank-1: #39FF14;
+  --color-rank-2: #52B946;
+  --color-rank-3: #2D6626;
+
+  /* Accents (Redirected to Green/Neutral to maintain "Green and Black" look) */
+  --color-accent-amber: #7EE074; /* Using Primary Light instead */
+  --color-accent-teal: #52B946;  /* Using Primary instead */
+}
+
+/* Theme Utilities */
+.neon-glow {
+  text-shadow: 0 0 10px var(--color-primary-glow), 0 0 20px var(--color-primary-glow);
+}
+
+.neon-border {
+  box-shadow: 0 0 15px var(--color-primary-glow);
 }
 
 /* Gradient Utilities */
 .bg-gradient-primary {
   background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 50%, var(--color-primary-light) 100%);
-}
-
-.text-gradient-primary {
-  background: linear-gradient(to right, var(--color-primary-light), var(--color-primary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .bg-glass {
@@ -57,7 +65,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-poppins);
 }
 
-/* Custom Utilities for the Home Page */
+/* Custom Utilities */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -96,10 +104,6 @@ h1, h2, h3, h4, h5, h6 {
   animation: slide-up 0.8s ease-out forwards;
 }
 
-/* End of Layout & Navigation Styles */
-
 .pb-safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
-
-/* Component Entry Animations handled by motion/react */
