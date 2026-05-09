@@ -1,6 +1,5 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import Navbar from "../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 import { Tournament } from "./types";
 import FeaturedCard from "./components/FeaturedCard";
@@ -76,7 +75,6 @@ export default function TournamentPage() {
     if (loading && tournaments.length === 0) {
         return (
             <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-                <Navbar />
                 <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
                     <div className="mb-24">
                         <div className="hidden lg:flex flex-row gap-12">
@@ -111,7 +109,6 @@ export default function TournamentPage() {
     if (tournaments.length === 0) {
         return (
             <div className="min-h-screen w-full bg-background font-questrial">
-                <Navbar />
                 <div className="flex flex-col items-center justify-center py-40 px-6 text-center">
                     <h2 className="text-4xl font-black uppercase tracking-tighter text-foreground mb-4 font-poppins">No Tournaments Found</h2>
                     <p className="text-foreground/40 max-w-md mx-auto mb-12">There are no tournaments at the moment. Check back soon for upcoming events.</p>
@@ -134,7 +131,6 @@ export default function TournamentPage() {
 
     return (
         <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-            <Navbar />
             
             <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
                 {isAuthorized && (

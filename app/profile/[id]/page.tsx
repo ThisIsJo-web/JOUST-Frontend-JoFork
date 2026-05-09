@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS } from "../../utils/api";
 
 interface UserProfile {
@@ -87,7 +86,6 @@ function ProfileContent() {
   if (loading && !user) {
     return (
       <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
-        <Navbar />
         <main className="flex-1 flex flex-col items-center px-4 py-12 sm:px-8 w-full animate-pulse">
           <div className="w-full max-w-7xl space-y-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8 bg-foreground/5 border border-foreground/10 p-10 rounded-none">
@@ -111,7 +109,6 @@ function ProfileContent() {
   if (!user) {
     return (
       <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center text-center p-8">
           <div>
             <h2 className="text-3xl font-black uppercase tracking-tighter text-foreground mb-4 font-poppins">User Not Found</h2>
@@ -124,7 +121,6 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
-      <Navbar />
 
       <main className="flex-1 flex flex-col items-center px-4 py-12 sm:px-8 w-full">
         <div className="w-full max-w-7xl">

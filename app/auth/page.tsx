@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Navbar from "../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, API_URL } from "../utils/api";
 
 export default function AuthPage() {
@@ -42,7 +41,6 @@ export default function AuthPage() {
   };
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden font-questrial bg-[#0F0F0F]">
-      <Navbar />
       
       {/* Subtle Pulsing Background Elements */}
       <div className="absolute inset-0 pointer-events-none">

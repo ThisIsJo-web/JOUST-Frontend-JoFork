@@ -2,19 +2,27 @@
 # ─────────────────────────────────────────────────────────
 #  JOUST – Generate .env.local for the Next.js frontend
 #  Usage:  ./generate-env.sh            (auto-detect LAN IP)
+#          ./generate-env.sh --clean    (full reset)
 #          ./generate-env.sh 10.0.0.42  (manual override)
 # ─────────────────────────────────────────────────────────
 set -euo pipefail
 
-echo "Cleaning up .next and node_modules..."
-rm -rf .next node_modules
+# ── Setup & Cleanup ──────────────────────────────────────
+CLEAN_MODE=false
+HOST_OVERRIDE=""
 
-echo "Installing dependencies..."
-npm install
+for arg in "$@"; do
+  if [[ "$arg" == "--clean" ]]; then
+    CLEAN_MODE=true
+  elif [[ "$arg" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$arg" == "localhost" ]]; then
+    HOST_OVERRIDE="$arg"
+  fi
+done
 
-echo "Running npm audit fix..."
-npm audit fix
+echo ""
+echo "[1/1] 🌐 Generating environment configuration..."
 
+# ── Environment Generation ────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env.local"
 
@@ -22,9 +30,9 @@ BACKEND_PORT="${BACKEND_PORT:-4000}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
 # ── Detect LAN IP ────────────────────────────────────────
-if [[ -n "${1:-}" ]]; then
-  HOST_IP="$1"
-  echo "Using provided IP: $HOST_IP"
+if [[ -n "$HOST_OVERRIDE" ]]; then
+  HOST_IP="$HOST_OVERRIDE"
+  echo "Using host: $HOST_IP"
 else
   # Try ip route first (Linux), fall back to ifconfig (macOS)
   if command -v ip &>/dev/null; then
@@ -54,9 +62,8 @@ NEXT_PUBLIC_API_URL=http://$HOST_IP:$BACKEND_PORT
 EOF
 
 echo ""
-echo "✔  Wrote $ENV_FILE"
-echo "   HOST_IP=$HOST_IP"
-echo "   BACKEND_PORT=$BACKEND_PORT"
+echo "✅ Setup complete! Wrote $ENV_FILE"
 echo "   NEXT_PUBLIC_API_URL=http://$HOST_IP:$BACKEND_PORT"
 echo ""
-echo "Start the dev server with:  npm run dev"
+echo "Run 'npm run dev' to start the frontend."
+echo ""

@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 import { Tournament } from "../types";
 import CreateTournamentForm from "./components/CreateTournamentForm";
@@ -75,7 +74,6 @@ export default function ManageTournaments() {
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-      <Navbar />
       <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
 
         {/* Header */}

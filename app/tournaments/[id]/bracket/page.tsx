@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "../../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
 import { Match, LeaderboardEntry } from "./types";
 import DesktopView from "./device/DesktopView";
@@ -130,7 +129,6 @@ function BracketViewContent() {
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial flex flex-col overflow-x-hidden">
-      <Navbar />
       <div className="w-full px-4 md:px-8 py-12 mx-auto space-y-12">
 
         {/* Header */}

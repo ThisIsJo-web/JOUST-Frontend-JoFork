@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS } from "../../../utils/api";
 
 interface User {
@@ -105,7 +104,6 @@ export default function OrganizersManagementPage() {
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-      <Navbar />
       
       <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
         {/* Header */}

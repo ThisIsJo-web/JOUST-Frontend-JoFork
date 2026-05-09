@@ -23,6 +23,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import Navibar from "./components/Navibar";
+import TransitionProvider from "./components/TransitionProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,8 +36,11 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} ${questrial.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground tracking-tight">
-        {children}
+      <body className="min-h-full flex flex-col bg-background text-foreground tracking-tight selection:bg-primary selection:text-background">
+        <Navibar />
+        <TransitionProvider>
+          {children}
+        </TransitionProvider>
       </body>
     </html>
   );

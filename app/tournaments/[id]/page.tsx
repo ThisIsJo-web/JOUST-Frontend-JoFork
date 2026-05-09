@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "../../Assets/navbar";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 import { Tournament } from "../types";
 import Image from "next/image";
@@ -78,7 +77,6 @@ function TournamentViewContent() {
   if (loading && !tournament) {
     return (
       <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-        <Navbar />
         <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto animate-pulse">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
             <div className="lg:col-span-8 space-y-12">
@@ -115,7 +113,6 @@ function TournamentViewContent() {
 
   return (
     <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-      <Navbar />
       
       <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
