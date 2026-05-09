@@ -6,25 +6,19 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #1B1B1B;
+  --color-background-dark: #0D0D0D;
+  --color-foreground: #EDEDED;
   --font-poppins: var(--font-poppins);
   --font-questrial: var(--font-questrial);
-  
-  /* Primary Neutral Green */
+
+  /* Brand Palette */
   --color-primary: #52B946;
   --color-primary-light: #7EE074;
   --color-primary-dark: #3E8D35;
   --color-primary-glow: rgba(82, 185, 70, 0.4);
-
-  /* Ranking Colors (All Green Tones) */
-  --color-rank-1: #39FF14;
-  --color-rank-2: #52B946;
-  --color-rank-3: #2D6626;
-
-  /* Accents (Redirected to Green/Neutral to maintain "Green and Black" look) */
-  --color-accent-amber: #7EE074; /* Using Primary Light instead */
-  --color-accent-teal: #52B946;  /* Using Primary instead */
+  --color-surface: var(--color-background-dark);
+  --color-white: #FFFFFF;
 }
 
 /* Theme Utilities */
@@ -61,7 +55,12 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-poppins);
 }
 
@@ -69,6 +68,7 @@ h1, h2, h3, h4, h5, h6 {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -83,23 +83,40 @@ h1, h2, h3, h4, h5, h6 {
 .skew-card {
   transform: skewX(-4deg);
 }
+
 .skew-card-inner {
   transform: skewX(4deg);
 }
 
 /* Animations */
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
+
 .animate-pulse-slow {
   animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .animate-slide-up {
   animation: slide-up 0.8s ease-out forwards;
 }

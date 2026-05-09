@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import * as m from "motion/react";
 import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
 import { useUser } from "./UserProvider";
 
@@ -34,16 +35,19 @@ export default function Navibar() {
     } finally {
       localStorage.removeItem("token");
       await refreshUser();
-      setIsMenuOpen(false);
       setIsProfileMenuOpen(false);
       router.push("/");
     }
   };
 
-  const navLinks = [
+  const navLinks = [];
+  if (user) {
+    navLinks.push({ name: "Home", href: "/home" });
+  }
+  navLinks.push(
     { name: "Tournaments", href: "/tournaments" },
-    { name: "Leaderboards", href: "/leaderboards" },
-  ];
+    { name: "Leaderboards", href: "/leaderboards" }
+  );
 
   const isAdmin = user?.roles?.includes('ADMIN');
   if (isAdmin) {
@@ -51,41 +55,42 @@ export default function Navibar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/60 backdrop-blur-xl border-b border-foreground/5 h-20">
-      {/* Dynamic Background Accent */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
-        <div className="absolute top-0 left-1/4 w-1/2 h-full bg-primary/5 blur-[100px] rounded-full" />
-      </div>
-
+    <header className="sticky top-0 z-50 w-full bg-black border-b border-white/10 h-20 backdrop-blur-md bg-black/80">
       <div className="max-w-7xl mx-auto h-full px-8 flex items-center justify-between relative z-10">
         {/* Branding */}
         <div className="flex items-center gap-12">
           <Link href="/" className="group flex items-center">
-            <Image 
-              src="/hpluslogo.png" 
-              alt="Hobby+ Logo" 
-              width={140} 
-              height={44} 
-              className="w-32 h-10 object-contain transition-opacity duration-300 group-hover:opacity-80" 
-              priority
-            />
+            <div className="flex items-center gap-4">
+              <Image
+                src="/hpluslogo.png"
+                alt="Hplus Logo"
+                width={120}
+                height={40}
+                className="w-28 h-auto object-contain brightness-125 group-hover:scale-105 transition-transform duration-300"
+                priority
+              />
+            </div>
           </Link>
-
+ 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-300 relative py-2 font-poppins ${
-                    isActive ? "text-primary-light" : "text-foreground/60 hover:text-foreground"
+                  className={`text-[11px] font-black uppercase tracking-[0.4em] transition-all duration-300 relative py-2 font-poppins ${
+                    isActive ? "text-primary" : "text-white/40 hover:text-white"
                   }`}
                 >
                   {link.name}
                   {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-primary to-primary-light animate-in fade-in slide-in-from-left-4 duration-500" />
+                    <m.motion.div 
+                      layoutId="activeNavIndicator"
+                      className="absolute -bottom-1 left-0 w-full h-[3px] bg-primary shadow-[0_0_20px_rgba(var(--color-primary),1)]"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
                   )}
                 </Link>
               );
@@ -97,54 +102,60 @@ export default function Navibar() {
         <div className="flex items-center gap-6">
           {user ? (
             <div className="relative" ref={profileMenuRef}>
-              <button
+              <m.motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`w-10 h-10 flex items-center justify-center font-black text-xs transition-all duration-500 border-2 font-poppins ${
+                className={`w-10 h-10 flex items-center justify-center font-black text-xs transition-all border-2 font-poppins ${
                   isProfileMenuOpen 
-                  ? "bg-gradient-primary text-background border-primary-light shadow-[0_0_20px_var(--color-primary-glow)]" 
-                  : "bg-foreground/5 text-foreground border-foreground/10 hover:border-primary/40"
+                  ? "bg-primary text-black border-primary shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" 
+                  : "bg-black text-white border-white/20 hover:border-primary"
                 }`}
               >
                 {user.username?.[0]?.toUpperCase() || "U"}
-              </button>
+              </m.motion.button>
 
               {/* Profile Dropdown */}
               {isProfileMenuOpen && (
-                <div className="absolute right-0 mt-4 w-64 bg-background/95 backdrop-blur-2xl border border-foreground/10 shadow-2xl py-2 animate-in fade-in slide-in-from-top-4 duration-300 overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-primary" />
-                  
-                  <div className="px-6 py-5 border-b border-foreground/5 mb-2 relative">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-primary mb-1 font-poppins">Authenticated</p>
-                    <p className="text-sm font-black text-foreground truncate font-poppins">{user.username}</p>
+                <div className="absolute right-0 mt-4 w-72 bg-black border-2 border-white/10 shadow-[0_0_40px_rgba(0,0,0,1)] py-0 overflow-hidden z-50">
+                  <div className="px-8 py-6 border-b border-white/10 bg-zinc-900/50">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary mb-1 font-poppins">USER</p>
+                    <p className="text-lg font-black truncate font-poppins text-white">{user.username?.toUpperCase()}</p>
                   </div>
                   
-                  <Link
-                    href={`/profile/${user.id || user.sub}`}
-                    onClick={() => setIsProfileMenuOpen(false)}
-                    className="flex items-center gap-4 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:text-primary-light hover:bg-foreground/5 transition-all font-poppins"
-                  >
-                    <div className="w-1.5 h-1.5 bg-primary" />
-                    View Profile
-                  </Link>
+                  <div className="divide-y divide-white/10">
+                    <Link
+                      href={`/profile/${user.id || user.sub}`}
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center gap-6 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-primary hover:bg-white/5 transition-all font-poppins"
+                    >
+                      <div className="w-2 h-2 bg-primary/40 group-hover:bg-primary" />
+                      PROFILE
+                    </Link>
 
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-4 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-red-500/80 hover:text-red-500 hover:bg-red-500/5 transition-all text-left border-t border-foreground/5"
-                  >
-                    <div className="w-1.5 h-1.5 bg-red-500" />
-                    Log Out
-                  </button>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-6 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all text-left font-poppins"
+                    >
+                      <div className="w-2 h-2 bg-red-500/40" />
+                      LOGOUT
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
-            <Link
-              href="/auth"
-              className="group relative bg-primary text-background px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] overflow-hidden transition-all active:scale-95 shadow-[0_10px_20px_var(--color-primary-glow)] font-poppins"
+            <m.motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <span className="relative z-10 group-hover:text-background">Login</span>
-            </Link>
+              <Link
+                href="/auth"
+                className="bg-primary text-black border-2 border-primary px-8 py-2.5 text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-[0_0_20px_rgba(var(--color-primary),0.3)] hover:shadow-[0_0_30px_rgba(var(--color-primary),0.5)] block font-poppins"
+              >
+                SIGN IN
+              </Link>
+            </m.motion.div>
           )}
 
         </div>

@@ -7,10 +7,10 @@ import FadeIn, { StaggerContainer } from "./components/FadeIn";
 import { API_ENDPOINTS } from "./utils/api";
 
 export const metadata: Metadata = {
-  title: "Hobby+ | The Premier Arena for Hobbyists",
-  description: "Join tournaments, equip yourself with premium gear, and connect with the global hobby community.",
+  title: "Landing | The Premier Arena for Hobbyists",
+  description: "Welcome to Hobby+. Discover tournaments, gear, and community.",
   openGraph: {
-    title: "Hobby+",
+    title: "Landing | Hobby+",
     description: "The next level of hobby gaming.",
     images: ["/hpluslogo.png"],
   },

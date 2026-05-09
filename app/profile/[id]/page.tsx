@@ -26,6 +26,8 @@ interface LeaderboardStats {
   losses: number;
   draws: number;
   matchWinPct: number;
+  omw: number;
+  oomw: number;
 }
 
 function ProfileContent() {

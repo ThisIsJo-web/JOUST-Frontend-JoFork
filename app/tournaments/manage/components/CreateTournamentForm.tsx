@@ -34,6 +34,18 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
   const [cardGames, setCardGames]     = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
   const [selectedCardGameId, setSelectedCardGameId] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Advanced Config State
+  const [bestOf, setBestOf]                       = useState(1);
+  const [pointsThreshold, setPointsThreshold]     = useState(0);
+  const [sessionsCount, setSessionsCount]         = useState(1);
+  const [allowDraw, setAllowDraw]                 = useState(false);
+  const [winsToAdvance, setWinsToAdvance]         = useState(1);
+  const [swissRounds, setSwissRounds]             = useState(3);
+  const [swissPointsWin, setSwissPointsWin]       = useState(3);
+  const [swissPointsDraw, setSwissPointsDraw]     = useState(1);
+  const [swissPointsLoss, setSwissPointsLoss]     = useState(0);
 
   const loadCardGames = async () => {
     const res = await authenticatedFetch(API_ENDPOINTS.CARD_GAMES.LIST);
@@ -51,22 +63,37 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
     e.preventDefault();
     const finalDate = date ? (startTime ? `${date}T${startTime}` : `${date}T00:00:00`) : null;
 
+    const body = {
+      name,
+      format,
+      maxPlayers: Number(maxPlayers),
+      prizePool: prizePool === "" ? null : Number(prizePool),
+      entranceFee: entranceFee === "" ? null : Number(entranceFee),
+      venue,
+      date: finalDate,
+      isPrivate,
+      startNow,
+      createdById: userId,
+      ...(selectedCardGameId ? { cardGameId: selectedCardGameId } : {}),
+      formatConfig: {
+        bestOf: Number(bestOf),
+        pointsThreshold: Number(pointsThreshold),
+        sessionsCount: Number(sessionsCount),
+        allowDraw,
+        winsToAdvance: Number(winsToAdvance),
+        ...(format === "SWISS" ? {
+          swissRounds: Number(swissRounds),
+          swissPointsForWin: Number(swissPointsWin),
+          swissPointsForDraw: Number(swissPointsDraw),
+          swissPointsForLoss: Number(swissPointsLoss),
+        } : {})
+      }
+    };
+
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.CREATE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        format,
-        maxPlayers: Number(maxPlayers),
-        prizePool: prizePool === "" ? null : Number(prizePool),
-        entranceFee: entranceFee === "" ? null : Number(entranceFee),
-        venue,
-        date: finalDate,
-        isPrivate,
-        startNow,
-        createdById: userId,
-        ...(selectedCardGameId ? { cardGameId: selectedCardGameId } : {}),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (res.ok) {
@@ -80,7 +107,7 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
   return (
     <div className="mb-12 bg-white/[0.02] backdrop-blur-md border border-white/[0.05] p-10 md:p-16 rounded-[3rem] animate-in fade-in zoom-in duration-700">
       <form onSubmit={handleSubmit} className="space-y-16">
-        {/* Step 1: Card Game Picker - Sleek Header Style */}
+        {/* Step 1: Card Game Picker */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-12 border-b border-white/[0.05]">
           <div className="max-w-md">
             <h3 className="text-xl md:text-2xl font-black text-foreground font-poppins tracking-tight mb-2">Initialize Combat Zone</h3>
@@ -140,6 +167,59 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
                 <input type="time" value={startTime} onChange={e => { setStartTime(e.target.value); if (e.target.value) setStartNow(false); }} className={`${inputCls} bg-transparent border-white/10 hover:border-white/20 w-32`} />
               </div>
             </Field>
+          </div>
+
+          {/* Advanced Configuration Toggle */}
+          <div className="pt-8">
+            <button 
+              type="button" 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-3 text-[10px] font-black text-primary uppercase tracking-widest hover:brightness-110 transition-all"
+            >
+              <span>{showAdvanced ? "[-]" : "[+]"} Advanced Configuration</span>
+            </button>
+            
+            {showAdvanced && (
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 p-8 border border-white/5 bg-white/[0.01] rounded-3xl animate-in slide-in-from-top-4 duration-500">
+                <Field label="Match Intensity (Best Of)">
+                   <input type="number" value={bestOf} onChange={e => setBestOf(Number(e.target.value))} min={1} step={2} className={`${inputCls} !h-12`} />
+                </Field>
+                <Field label="Play Days (Duration)">
+                   <input type="number" value={sessionsCount} onChange={e => setSessionsCount(Number(e.target.value))} min={1} className={`${inputCls} !h-12`} />
+                </Field>
+                <Field label="Victory Score (Threshold)">
+                   <input type="number" value={pointsThreshold} onChange={e => setPointsThreshold(Number(e.target.value))} min={0} className={`${inputCls} !h-12`} />
+                </Field>
+                <Field label="Allow Draws">
+                  <div className="h-12 flex items-center">
+                    <input type="checkbox" checked={allowDraw} onChange={e => setAllowDraw(e.target.checked)} className="w-5 h-5 rounded bg-background border border-white/10 text-primary focus:ring-primary" />
+                  </div>
+                </Field>
+
+                {(format === "SINGLE_ELIMINATION" || format === "DOUBLE_ELIMINATION") && (
+                  <Field label="Wins to Advance">
+                    <input type="number" value={winsToAdvance} onChange={e => setWinsToAdvance(Number(e.target.value))} min={1} className={`${inputCls} !h-12`} />
+                  </Field>
+                )}
+
+                {format === "SWISS" && (
+                  <>
+                    <Field label="Swiss Rounds">
+                      <input type="number" value={swissRounds} onChange={e => setSwissRounds(Number(e.target.value))} min={1} className={`${inputCls} !h-12`} />
+                    </Field>
+                    <Field label="Points: Win">
+                      <input type="number" value={swissPointsWin} onChange={e => setSwissPointsWin(Number(e.target.value))} className={`${inputCls} !h-12`} />
+                    </Field>
+                    <Field label="Points: Draw">
+                      <input type="number" value={swissPointsDraw} onChange={e => setSwissPointsDraw(Number(e.target.value))} className={`${inputCls} !h-12`} />
+                    </Field>
+                    <Field label="Points: Loss">
+                      <input type="number" value={swissPointsLoss} onChange={e => setSwissPointsLoss(Number(e.target.value))} className={`${inputCls} !h-12`} />
+                    </Field>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-12 border-t border-white/[0.05]">

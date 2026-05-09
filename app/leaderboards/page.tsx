@@ -13,6 +13,8 @@ interface GlobalLeaderboardEntry {
   losses: number;
   draws: number;
   matchWinPct: number;
+  omw: number;
+  oomw: number;
 }
 
 import HomeFrame from "../components/home/HomeFrame";
