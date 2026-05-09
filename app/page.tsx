@@ -3,6 +3,7 @@ import Hero from "./components/home/Hero";
 import Shop from "./components/home/Shop";
 import TournamentPreview from "./components/home/TournamentPreview";
 import Footer from "./components/Footer";
+import FadeIn, { StaggerContainer } from "./components/FadeIn";
 import { API_ENDPOINTS } from "./utils/api";
 
 export const metadata: Metadata = {
@@ -34,7 +35,7 @@ export default async function Home() {
     if (res.ok) {
       const data = await res.json();
       // Filter for relevant preview statuses
-      tournaments = data.filter((t: any) => 
+      tournaments = data.filter((t: { status: string }) => 
         t.status === "OPEN" || t.status === "UPCOMING" || t.status === "PENDING"
       );
     }
@@ -43,30 +44,38 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex flex-col">
+    <StaggerContainer className="flex flex-col">
       {/* Flagship Hero Section */}
-      <Hero />
+      <FadeIn>
+        <Hero />
+      </FadeIn>
       
       {/* Tournament Showcase - Server Rendered */}
-      <TournamentPreview tournaments={tournaments} />
+      <FadeIn>
+        <TournamentPreview tournaments={tournaments} />
+      </FadeIn>
       
       {/* Featured Shop - Client Interactive */}
-      <Shop />
+      <FadeIn>
+        <Shop />
+      </FadeIn>
       
       {/* Future Sections */}
-      <section className="py-24 bg-background border-t border-foreground/5 relative overflow-hidden">
-         <div className="absolute inset-0 z-0 opacity-5">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)]" />
-         </div>
-         <div className="max-w-7xl mx-auto px-8 relative z-10 text-center">
-            <div className="h-px w-24 bg-primary/30 mx-auto mb-8" />
-            <h4 className="text-sm font-black uppercase tracking-[0.6em] text-foreground/40 italic">
-               More Updates Coming Soon
-            </h4>
-         </div>
-      </section>
+      <FadeIn>
+        <section className="py-24 bg-background border-t border-foreground/5 relative overflow-hidden">
+           <div className="absolute inset-0 z-0 opacity-5">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--color-primary)_0%,_transparent_70%)]" />
+           </div>
+           <div className="max-w-7xl mx-auto px-8 relative z-10 text-center">
+              <div className="h-px w-24 bg-primary/30 mx-auto mb-8" />
+              <h4 className="text-sm font-black uppercase tracking-[0.6em] text-foreground/40 italic">
+                 More Updates Coming Soon
+              </h4>
+           </div>
+        </section>
+      </FadeIn>
 
       <Footer />
-    </div>
+    </StaggerContainer>
   );
 }

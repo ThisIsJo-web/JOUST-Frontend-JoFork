@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
+import { useUser } from "./UserProvider";
 
 /**
  * Navibar - The primary navigation component.
@@ -12,27 +13,10 @@ import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
 export default function Navibar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, refreshUser } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [user, setUser] = useState<{ id?: string, sub?: string, username: string, email?: string, roles?: string[] } | null>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        setUser(null);
-      }
-    };
-    fetchUser();
-  }, [pathname]);
 
   // Handle outside clicks for profile menu
   useEffect(() => {
@@ -50,7 +34,7 @@ export default function Navibar() {
       await authenticatedFetch(API_ENDPOINTS.AUTH.SIGNOUT);
     } finally {
       localStorage.removeItem("token");
-      setUser(null);
+      await refreshUser();
       setIsMenuOpen(false);
       setIsProfileMenuOpen(false);
       router.push("/");

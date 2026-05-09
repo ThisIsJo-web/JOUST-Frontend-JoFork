@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 
 interface GlobalLeaderboardEntry {
@@ -20,21 +19,15 @@ import HomeFrame from "../components/home/HomeFrame";
 import SectionHeader from "../components/home/SectionHeader";
 import UserRankCard from "../components/leaderboard/UserRankCard";
 import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
+import FadeIn, { StaggerContainer } from "../components/FadeIn";
 
 function LeaderboardsContent() {
-  const router = useRouter();
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
   const [userStats, setUserStats] = useState<GlobalLeaderboardEntry | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); 
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchGlobalLeaderboard();
-  }, []);
-
   const fetchGlobalLeaderboard = async () => {
-    setLoading(true);
-    setError("");
     try {
       const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
       let currentUser = null;
@@ -66,53 +59,66 @@ function LeaderboardsContent() {
     }
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchGlobalLeaderboard();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <HomeFrame className="pt-32 pb-20">
-        <div className="max-w-7xl mx-auto px-8">
-          <SectionHeader 
-            title="Leaderboards" 
-            subtitle="Global Pilot Rankings" 
-            description="The most elite competitors in the JOUST ecosystem. Ranked by combat performance and victory consistency."
-          />
+        <StaggerContainer className="max-w-7xl mx-auto px-8">
+          <FadeIn>
+            <SectionHeader 
+              title="Leaderboards" 
+              subtitle="Global Pilot Rankings" 
+              description="The most elite competitors in the JOUST ecosystem. Ranked by combat performance and victory consistency."
+            />
+          </FadeIn>
 
           {userStats && (
-            <div className="mb-20">
-              <UserRankCard stats={userStats} loading={loading} />
-            </div>
+            <FadeIn>
+              <div className="mb-20">
+                <UserRankCard stats={userStats} loading={loading} />
+              </div>
+            </FadeIn>
           )}
 
-          <div className="mt-20">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xs font-black uppercase tracking-[0.5em] text-primary">Top Performers</h3>
-              {leaderboard.length > 0 && (
-                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/20">
-                  {leaderboard.length} Pilots Synchronized
-                </span>
+          <FadeIn>
+            <div className="mt-20">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xs font-black uppercase tracking-[0.5em] text-primary">Top Performers</h3>
+                {leaderboard.length > 0 && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-foreground/20">
+                    {leaderboard.length} Pilots Synchronized
+                  </span>
+                )}
+              </div>
+
+              {loading ? (
+                <LeaderboardTable entries={[]} loading={true} />
+              ) : error ? (
+                <div className="p-20 border border-red-500/10 bg-red-500/5 text-center font-poppins">
+                  <p className="text-red-500 text-xs font-black uppercase tracking-[0.3em] mb-6">{error}</p>
+                  <button 
+                    onClick={fetchGlobalLeaderboard}
+                    className="px-10 py-4 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all"
+                  >
+                    Reconnect
+                  </button>
+                </div>
+              ) : leaderboard.length === 0 ? (
+                <div className="p-24 border border-foreground/5 bg-foreground/5 text-center font-poppins">
+                  <p className="text-foreground/20 text-xs font-black uppercase tracking-[0.3em]">No ranking data currently available</p>
+                </div>
+              ) : (
+                <LeaderboardTable entries={leaderboard} />
               )}
             </div>
-
-            {loading ? (
-              <LeaderboardTable entries={[]} loading={true} />
-            ) : error ? (
-              <div className="p-20 border border-red-500/10 bg-red-500/5 text-center font-poppins">
-                <p className="text-red-500 text-xs font-black uppercase tracking-[0.3em] mb-6">{error}</p>
-                <button 
-                  onClick={fetchGlobalLeaderboard}
-                  className="px-10 py-4 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all"
-                >
-                  Reconnect
-                </button>
-              </div>
-            ) : leaderboard.length === 0 ? (
-              <div className="p-24 border border-foreground/5 bg-foreground/5 text-center font-poppins">
-                <p className="text-foreground/20 text-xs font-black uppercase tracking-[0.3em]">No ranking data currently available</p>
-              </div>
-            ) : (
-              <LeaderboardTable entries={leaderboard} />
-            )}
-          </div>
-        </div>
+          </FadeIn>
+        </StaggerContainer>
       </HomeFrame>
     </div>
   );
