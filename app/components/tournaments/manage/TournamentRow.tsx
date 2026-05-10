@@ -1,4 +1,4 @@
-import { Tournament } from "../../types";
+import { Tournament } from "../../../tournaments/types";
 
 interface Props {
   tournament: Tournament;

@@ -1,4 +1,4 @@
-import { Tournament } from "../../../types";
+import { Tournament } from "../../../tournaments/types";
 
 const inputCls = "h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl";
 

@@ -1,4 +1,4 @@
-import { LeaderboardEntry } from "../types";
+import { LeaderboardEntry } from "../../../tournaments/[id]/bracket/types";
 
 const MaximizeIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../../utils/api";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
 
 interface RawParticipant {
   id: string; userId: string; seed?: number;

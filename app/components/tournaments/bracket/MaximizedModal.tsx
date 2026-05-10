@@ -1,4 +1,4 @@
-import { LeaderboardEntry } from "../types";
+import { LeaderboardEntry } from "../../../tournaments/[id]/bracket/types";
 
 interface LogEntry { id: string; action: string; details?: string; timestamp: string; }
 

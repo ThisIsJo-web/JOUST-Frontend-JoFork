@@ -1,4 +1,4 @@
-import { Tournament, FormatConfig } from "../../../types";
+import { Tournament, FormatConfig } from "../../../tournaments/types";
 
 const inputCls = "w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl";
 

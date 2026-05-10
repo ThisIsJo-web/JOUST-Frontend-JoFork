@@ -1,4 +1,4 @@
-import { Match } from "../types";
+import { Match } from "../../../tournaments/[id]/bracket/types";
 
 interface Props {
   match: Match | null;

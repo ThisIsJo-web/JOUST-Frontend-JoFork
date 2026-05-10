@@ -68,8 +68,6 @@ function LeaderboardsContent() {
     <HomeFrame className="py-24 md:py-32" showPattern={true}>
       <StaggerContainer className="max-w-7xl mx-auto px-6 md:px-8 space-y-24">
         
-        <LeaderboardHero count={leaderboard.length} />
-
         {userStats && (
           <FadeIn>
             <UserRankCard stats={userStats} loading={loading} />

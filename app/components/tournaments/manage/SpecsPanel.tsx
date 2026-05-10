@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Tournament } from "../../../types";
-import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../../utils/api";
-import CardGameModal from "../../../components/CardGameModal";
+import { Tournament } from "../../../tournaments/types";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
+import CardGameModal from "../CardGameModal";
 
 const inputCls = "w-full h-12 bg-background border border-foreground/10 px-4 text-xs text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none";
 

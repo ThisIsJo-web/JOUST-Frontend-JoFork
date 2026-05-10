@@ -3,11 +3,11 @@ import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
 import { Tournament, FormatConfig } from "../../types";
-import ControlRoomHeader from "./components/ControlRoomHeader";
-import RosterPanel from "./components/RosterPanel";
-import SpecsPanel from "./components/SpecsPanel";
-import FormatRulesPanel from "./components/FormatRulesPanel";
-import DeploymentPanel from "./components/DeploymentPanel";
+import ControlRoomHeader from "../../../components/tournaments/manage/ControlRoomHeader";
+import RosterPanel from "../../../components/tournaments/manage/RosterPanel";
+import SpecsPanel from "../../../components/tournaments/manage/SpecsPanel";
+import FormatRulesPanel from "../../../components/tournaments/manage/FormatRulesPanel";
+import DeploymentPanel from "../../../components/tournaments/manage/DeploymentPanel";
 
 const randomGuestName = () => `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
 

@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 import { Tournament } from "../types";
-import CreateTournamentForm from "./components/CreateTournamentForm";
-import TournamentRow from "./components/TournamentRow";
+import CreateTournamentForm from "../../components/tournaments/manage/CreateTournamentForm";
+import TournamentRow from "../../components/tournaments/manage/TournamentRow";
 
 export default function ManageTournaments() {
   const router = useRouter();

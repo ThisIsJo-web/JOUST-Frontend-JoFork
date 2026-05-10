@@ -1,5 +1,5 @@
 "use client";
-import { Tournament } from "../../../types";
+import { Tournament } from "../../../tournaments/types";
 import { DragDropProvider, PointerSensor, DragEndEvent } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 

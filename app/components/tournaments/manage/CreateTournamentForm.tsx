@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
-import CardGameModal from "../../components/CardGameModal";
+import CardGameModal from "../CardGameModal";
 
 const inputCls = "w-full h-14 bg-background border border-foreground/10 px-6 text-sm text-foreground focus:outline-none focus:border-primary transition-all rounded-xl appearance-none";
 

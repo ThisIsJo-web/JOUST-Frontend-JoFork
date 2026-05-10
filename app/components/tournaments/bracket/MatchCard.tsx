@@ -1,4 +1,4 @@
-import { Match, LeaderboardEntry } from "../types";
+import { Match, LeaderboardEntry } from "../../../tournaments/[id]/bracket/types";
 
 interface MatchCardProps {
   match: Match;

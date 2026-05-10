@@ -5,12 +5,12 @@ import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api"
 import { Match, LeaderboardEntry } from "./types";
 import DesktopView from "./device/DesktopView";
 import MobileView from "./device/MobileView";
-import ScoringDrawer from "./components/ScoringDrawer";
-import MaximizedModal from "./components/MaximizedModal";
-import TerminalLogs from "./components/TerminalLogs";
-import LiveStandings from "./components/LiveStandings";
-import DeploymentFooter from "./components/DeploymentFooter";
-import BracketPreview from "./components/BracketPreview";
+import ScoringDrawer from "../../../components/tournaments/bracket/ScoringDrawer";
+import MaximizedModal from "../../../components/tournaments/bracket/MaximizedModal";
+import TerminalLogs from "../../../components/tournaments/bracket/TerminalLogs";
+import LiveStandings from "../../../components/tournaments/bracket/LiveStandings";
+import DeploymentFooter from "../../../components/tournaments/bracket/DeploymentFooter";
+import BracketPreview from "../../../components/tournaments/bracket/BracketPreview";
 
 const randomGuestName = () => `Guest_${Math.floor(1000 + Math.random() * 9000)}`;
 

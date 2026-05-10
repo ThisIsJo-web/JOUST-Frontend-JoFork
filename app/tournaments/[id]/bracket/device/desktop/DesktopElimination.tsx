@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Match, Round, LeaderboardEntry } from "../../types";
-import MatchCard from "../../components/MatchCard";
+import MatchCard from "../../../../../components/tournaments/bracket/MatchCard";
 
 interface DesktopEliminationProps {
     tournament: any;
