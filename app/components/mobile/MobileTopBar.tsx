@@ -25,10 +25,6 @@ export default function MobileTopBar() {
           />
         </Link>
         
-        {/* Subtle Path Indicator or Contextual Action */}
-        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 font-poppins">
-          {pathname === "/" ? "Home" : pathname.split("/")[1].replace(/-/g, " ")}
-        </div>
       </div>
     </header>
   );

@@ -19,6 +19,9 @@
   --color-primary-glow: rgba(82, 185, 70, 0.4);
   --color-surface: var(--color-background-dark);
   --color-white: #FFFFFF;
+
+  /* Expressive Easing */
+  --ease-expressive: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Theme Utilities */

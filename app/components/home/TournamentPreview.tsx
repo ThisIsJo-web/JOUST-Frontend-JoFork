@@ -1,20 +1,29 @@
+"use client";
 import Link from "next/link";
+import { motion } from "motion/react";
 import { Tournament } from "../../tournaments/types";
 import HomeFrame from "./HomeFrame";
-import SectionHeader from "./SectionHeader";
 
 interface TournamentPreviewProps {
   tournaments: Tournament[];
 }
 
-/**
- * TournamentPreview - Showcases upcoming engagements in a premium grid.
- * Refactored as a Server Component for instant performance.
- */
 export default function TournamentPreview({ tournaments = [] }: TournamentPreviewProps) {
-  if (tournaments.length === 0) return null;
+  if (tournaments.length === 0) {
+    return (
+      <HomeFrame className="py-40">
+        <div className="max-w-7xl mx-auto px-8 flex flex-col items-center justify-center text-center">
+          <h2 className="text-6xl md:text-[120px] font-black text-white/5 uppercase tracking-tighter italic font-poppins mb-12">
+            EMPTY_DATA
+          </h2>
+          <Link href="/tournaments" className="px-12 py-6 bg-primary text-black font-black text-xl uppercase tracking-widest hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[8px_8px_0px_0px_white] transition-all">
+             VIEW ALL TOURNAMENTS
+          </Link>
+        </div>
+      </HomeFrame>
+    );
+  }
 
-  // Sorting logic for the featured display
   const sorted = [...tournaments].sort((a, b) => {
     if (a.status === "OPEN" && b.status !== "OPEN") return -1;
     if (a.status !== "OPEN" && b.status === "OPEN") return 1;
@@ -29,98 +38,84 @@ export default function TournamentPreview({ tournaments = [] }: TournamentPrevie
   return (
     <HomeFrame className="py-24">
       <div className="max-w-7xl mx-auto px-8">
-        <SectionHeader 
-          title="Tournaments" 
-          subtitle="Join the most anticipated competitions of the season. High stakes, intense play, and leaderboard glory await." 
-          centered
-        />
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Featured Large Entry */}
-          <div className="lg:col-span-8 group">
-            <Link href={`/tournaments/${featured.id}`} className="block relative aspect-[16/9] bg-background overflow-hidden border border-foreground/5 group-hover:border-primary/40 transition-all duration-500">
-              {/* Background Decoration */}
-              <div className="absolute inset-0 z-0 flex items-center justify-center text-foreground/5 text-9xl font-black select-none">
-                FEATURED
-              </div>
+          {/* Featured Entry - Neo Brutalist */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="lg:col-span-8 group"
+          >
+            <Link href={`/tournaments/${featured.id}`} className="block relative aspect-[16/9] bg-zinc-900 border-4 border-white hover:border-primary hover:shadow-[16px_16px_0px_0px_#52B946] transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
               
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
-              
-              <div className="absolute bottom-0 left-0 p-10 z-20 space-y-6 w-full">
-                <div className="flex items-center gap-4 font-poppins">
-                  <span className={`text-[10px] px-4 py-1.5 font-black uppercase tracking-[0.2em] shadow-lg ${
-                    featured.status === "OPEN" ? "bg-gradient-primary text-background" : "bg-foreground/10 text-foreground"
+              <div className="absolute bottom-0 left-0 p-12 z-20 space-y-6 w-full">
+                <div className="flex items-center gap-4">
+                  <span className={`text-xs px-6 py-2 font-black uppercase tracking-widest ${
+                    featured.status === "OPEN" ? "bg-primary text-black" : "bg-white text-black"
                   }`}>
                     {featured.status}
                   </span>
-                  <span className="text-[10px] text-primary font-black uppercase tracking-widest">
-                    {featured.date ? new Date(featured.date).toLocaleDateString() : "TBD"}
-                  </span>
                 </div>
                 
-                <h4 className="text-3xl md:text-6xl font-black tracking-tighter uppercase text-foreground group-hover:text-primary transition-colors leading-none font-poppins">
+                <h4 className="text-5xl md:text-8xl font-black tracking-tighter uppercase text-white leading-none font-poppins">
                   {featured.name}
                 </h4>
 
-                <div className="flex items-center gap-8 pt-2 font-poppins">
+                <div className="flex items-center gap-8 pt-4">
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40">Prize Pool</span>
-                    <span className="text-xl font-black text-primary-light drop-shadow-[0_0_10px_var(--color-primary-glow)]">{featured.prizePool ? `$${featured.prizePool}` : "GLORY"}</span>
+                    <span className="text-[10px] font-black uppercase text-white/40">Prize Pool</span>
+                    <span className="text-3xl font-black text-primary">{featured.prizePool ? `$${featured.prizePool}` : "PRESTIGE"}</span>
                   </div>
-                  <div className="w-px h-10 bg-foreground/10" />
+                  <div className="w-1 h-12 bg-white/10" />
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40">Format</span>
-                    <span className="text-xl font-black text-foreground">{featured.format.replace("_", " ")}</span>
+                    <span className="text-[10px] font-black uppercase text-white/40">Format</span>
+                    <span className="text-3xl font-black text-white">{featured.format.replace("_", " ")}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Interaction Overlay */}
-              <div className="absolute top-8 right-8 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className="bg-primary text-background p-4 flex items-center justify-center font-black text-xs">
-                  JOIN NOW →
+              <div className="absolute top-10 right-10 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-primary text-black px-10 py-5 font-black text-sm uppercase tracking-widest shadow-[8px_8px_0px_0px_white]">
+                  ENTER TOURNAMENT
                 </div>
               </div>
             </Link>
-          </div>
+          </motion.div>
 
-          {/* List of Other Entries */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40 mb-2">Upcoming Tournaments</h5>
-            {others.map((t) => (
-              <Link key={t.id} href={`/tournaments/${t.id}`} className="group block bg-foreground/[0.02] border border-foreground/5 hover:border-primary/40 transition-all p-6">
-                <div className="flex gap-6 items-center">
-                  <div className="h-20 w-20 flex-none bg-background border border-foreground/5 relative overflow-hidden flex items-center justify-center text-foreground/5 font-black text-xs">
-                    LOGO
-                  </div>
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-black text-primary uppercase tracking-widest">
-                        {t.status}
-                      </span>
-                    </div>
-                    <h5 className="text-lg font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors truncate leading-tight font-poppins">
+          {/* Secondary List - Blocky & Clean */}
+          <div className="lg:col-span-4 flex flex-col gap-8">
+            {others.map((t, idx) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <Link href={`/tournaments/${t.id}`} className="group block bg-white/5 border-2 border-white/10 hover:border-primary hover:bg-primary/5 hover:shadow-[8px_8px_0px_0px_#52B946] transition-all p-8">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                      {t.status}
+                    </span>
+                    <h5 className="text-2xl font-black uppercase tracking-tighter text-white font-poppins">
                       {t.name}
                     </h5>
-                    <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-widest font-questrial">
-                      {t.date ? new Date(t.date).toLocaleDateString() : "Date TBD"}
+                    <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">
+                      {t.date ? new Date(t.date).toLocaleDateString() : "DATE_PENDING"}
                     </p>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </motion.div>
             ))}
             
-            {others.length === 0 && (
-              <div className="flex-grow flex flex-col items-center justify-center text-center p-8 border border-dashed border-foreground/10 opacity-30">
-                <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40">More tournaments soon.</p>
-              </div>
-            )}
-            
-            <Link href="/tournaments" className="group mt-auto py-5 flex items-center justify-center border border-foreground/10 hover:border-primary/40 hover:bg-primary/5 transition-all">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-foreground/40 group-hover:text-primary">
-                View All Tournaments
-              </span>
-            </Link>
+            <motion.div whileHover={{ x: 8 }} className="mt-auto">
+              <Link href="/tournaments" className="group py-8 flex items-center justify-center border-4 border-white/10 hover:border-primary hover:bg-primary text-white hover:text-black transition-all">
+                <span className="text-xl font-black uppercase tracking-widest">
+                  VIEW ALL
+                </span>
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>

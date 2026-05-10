@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as m from "motion/react";
-import { AnimatePresence } from "motion/react";
-import { authenticatedFetch, API_ENDPOINTS, API_URL } from "../utils/api";
+import { motion, AnimatePresence } from "motion/react";
+import { API_ENDPOINTS, API_URL } from "../utils/api";
 import FadeIn, { StaggerContainer } from "../components/FadeIn";
+import Footer from "../components/Footer";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -44,155 +45,146 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden font-questrial bg-[#0F0F0F]">
-      
-      {/* Subtle Pulsing Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent animate-pulse duration-[5000ms]" />
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px] animate-pulse duration-[8000ms]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px] animate-pulse duration-[6000ms] delay-1000" />
+    <div className="min-h-screen flex flex-col bg-[#1B1B1B] relative overflow-hidden">
+      {/* High-Intensity Sensory Breathing Background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <motion.div 
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-transparent"
+        />
+        <motion.div 
+          animate={{ 
+            opacity: [0.1, 0.25, 0.1],
+            scale: [1, 1.15, 1]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-15%] left-[-15%] w-[80%] h-[80%] bg-primary/30 rounded-full blur-[100px]"
+        />
+        <motion.div 
+          animate={{ 
+            opacity: [0.1, 0.25, 0.1],
+            scale: [1.15, 1, 1.15]
+          }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-[-15%] right-[-15%] w-[80%] h-[80%] bg-primary/30 rounded-full blur-[100px]"
+        />
       </div>
 
-      <main className="flex-1 flex items-center justify-center p-4 z-10">
-        <StaggerContainer className="w-full max-w-[440px]">
+      <main className="flex-grow flex items-center justify-center p-6 z-10 my-12">
+        <StaggerContainer className="w-full max-w-[440px] relative">
+          {/* Structural Ghost Frame */}
+          <div className="absolute inset-0 border-4 border-white translate-x-3 translate-y-3 -z-10 opacity-30" />
+
           <FadeIn>
-            <div className="bg-[#141414] border border-white/5 p-8 md:p-10 rounded-[2rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative overflow-hidden">
-              
-              {/* Header */}
-              <div className="flex flex-col items-center mb-8 relative text-center">
+            <div className="bg-[#1B1B1B] border-4 border-white p-8 md:p-10 relative shadow-[16px_16px_0px_0px_rgba(82,185,70,0.05)] overflow-hidden">
+              {/* Header - Compact */}
+              <div className="flex justify-center mb-10">
                 <Image
                   src="/hpluslogo.png"
-                  alt="Hplus Logo"
-                  width={176}
-                  height={64}
-                  className="w-36 h-12 object-contain brightness-125 transition-transform duration-700 hover:scale-105 mb-4"
+                  alt="Logo"
+                  width={160}
+                  height={60}
+                  className="w-36 md:w-44"
                   priority
                 />
-                <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins opacity-80">
-                  User Portal
-                </h2>
               </div>
 
-              {/* Mode Switcher */}
-              <div className="bg-black/40 p-1 rounded-xl flex mb-8 border border-white/5 relative">
+              {/* Mode Switcher - Compact */}
+              <div className="flex mb-10 border-b-4 border-white/10">
                 <button
                   onClick={() => setMode("login")}
-                  className={`relative z-10 flex-1 py-2.5 font-black text-[10px] uppercase tracking-widest transition-all rounded-lg font-poppins ${
-                    mode === "login" ? "text-white" : "text-gray-500 hover:text-white"
+                  className={`flex-1 py-3 font-black text-xs uppercase tracking-widest transition-all relative ${
+                    mode === "login" ? "text-primary" : "text-white/30 hover:text-white"
                   }`}
                 >
                   Sign In
                   {mode === "login" && (
-                    <m.motion.div 
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-lg shadow-primary/20"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
+                    <motion.div layoutId="authUnderline" className="absolute bottom-[-4px] left-0 w-full h-1 bg-primary" />
                   )}
                 </button>
                 <button
                   onClick={() => setMode("signup")}
-                  className={`relative z-10 flex-1 py-2.5 font-black text-[10px] uppercase tracking-widest transition-all rounded-lg font-poppins ${
-                    mode === "signup" ? "text-white" : "text-gray-500 hover:text-white"
+                  className={`flex-1 py-3 font-black text-xs uppercase tracking-widest transition-all relative ${
+                    mode === "signup" ? "text-primary" : "text-white/30 hover:text-white"
                   }`}
                 >
                   Sign Up
                   {mode === "signup" && (
-                    <m.motion.div 
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-lg shadow-primary/20"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
+                    <motion.div layoutId="authUnderline" className="absolute bottom-[-4px] left-0 w-full h-1 bg-primary" />
                   )}
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 relative">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 font-poppins">
-                    Username / Email
-                  </label>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="relative">
+                  <span className="absolute -top-2.5 left-5 bg-[#1B1B1B] px-2 text-[9px] font-black text-primary uppercase tracking-widest z-20">
+                    Username
+                  </span>
                   <input
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="EX: ARENA_KING"
-                    className="w-full h-12 bg-black/40 border border-white/5 px-5 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all rounded-xl font-questrial"
+                    placeholder="Enter Username"
+                    className="w-full h-14 bg-transparent border-4 border-white px-6 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-primary transition-all font-poppins"
                     required
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest font-poppins">
-                      Password
-                    </label>
-                    <button type="button" className="text-[10px] font-black text-primary/60 uppercase tracking-widest hover:text-primary transition-colors font-poppins">
-                      Recover
-                    </button>
-                  </div>
+                <div className="relative">
+                  <span className="absolute -top-2.5 left-5 bg-[#1B1B1B] px-2 text-[9px] font-black text-primary uppercase tracking-widest z-20">
+                    Password
+                  </span>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full h-12 bg-black/40 border border-white/5 px-5 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all rounded-xl font-questrial"
+                    className="w-full h-14 bg-transparent border-4 border-white px-6 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-primary transition-all font-poppins"
                     required
                   />
                 </div>
 
                 <AnimatePresence mode="wait">
                   {message && (
-                    <m.motion.div 
+                    <motion.div 
                       key="message"
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{ opacity: 1, height: "auto", marginTop: 20 }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      className={`p-3 text-[10px] font-black uppercase tracking-widest text-center rounded-lg ${
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`p-4 text-[9px] font-black uppercase tracking-widest border-l-4 ${
                         message.startsWith("Error") 
-                          ? "bg-red-500/10 text-red-500 border border-red-500/10" 
-                          : "bg-primary/10 text-primary border border-primary/10"
+                          ? "border-red-500 bg-red-500/5 text-red-500" 
+                          : "border-primary bg-primary/5 text-primary"
                       }`}
                     >
                       {message}
-                    </m.motion.div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
 
                 <button
                   type="submit"
-                  className="w-full h-14 bg-primary text-white font-black text-[11px] uppercase tracking-[0.2em] hover:brightness-110 active:scale-[0.98] transition-all rounded-xl shadow-xl shadow-primary/20 font-poppins mt-2 relative overflow-hidden"
+                  className="w-full h-16 bg-primary text-black font-black text-sm uppercase tracking-widest flex items-center justify-between px-8 hover:translate-x-1 transition-transform duration-300"
                 >
-                  <AnimatePresence mode="wait">
-                    <m.motion.span
-                      key={mode}
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -10, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="block"
-                    >
-                      {mode === "login" ? "Sign In" : "Sign Up"}
-                    </m.motion.span>
-                  </AnimatePresence>
+                  <span>{mode === "login" ? "Sign In" : "Sign Up"}</span>
+                  <span>→</span>
                 </button>
               </form>
 
-              <div className="mt-8 flex flex-col items-center gap-4">
+              <div className="mt-10 flex justify-center">
                 <Link 
                   href="/" 
-                  className="text-[10px] font-black text-primary hover:text-white uppercase tracking-[0.3em] transition-colors font-poppins"
+                  className="text-[9px] font-black text-white/40 hover:text-primary uppercase tracking-widest transition-colors font-poppins"
                 >
-                  ← BACK TO LANDING
+                  ← BACK TO HOME
                 </Link>
-                <p className="text-center text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] leading-relaxed font-questrial">
-                  Authorized access only. Secure login active.
-                </p>
               </div>
             </div>
           </FadeIn>
         </StaggerContainer>
       </main>
+
+      <Footer />
     </div>
   );
 }

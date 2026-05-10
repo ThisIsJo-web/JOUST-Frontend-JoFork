@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-
+import { motion, AnimatePresence } from "motion/react";
 import BrandButton from "./BrandButton";
 
 interface Slide {
@@ -25,23 +25,20 @@ interface HeroProps {
   storeButtons?: StoreButtonConfig[];
 }
 
-/**
- * Hero - The flagship introductory section of the home page.
- */
 export default function Hero({ 
   slides = [
     { image: "/hero-bg-1.jpg", title: "MASTER YOUR CRAFT", photoDesc: "COLLECTORS EDITION — SERIES 01" },
-    { image: "/hero-bg-2.jpg", title: "JOIN THE COMPETITION", photoDesc: "TOURNAMENT ARENA — LIVE EVENT" }
+    { image: "/hero-bg-2.jpg", title: "JOIN THE COMPETITION", photoDesc: "TOURNAMENT EVENT — LIVE" }
   ], 
   logo = "/hpluslogo.png", 
-  description = "Experience the next level of hobby gaming. Tournaments, community, and the best gear, all in one place.",
+  description = "Experience the next level of hobby gaming. Professional tournaments, high-fidelity community, and the best gear, all in one place.",
   storeButtons = [
     { 
       text: "Shopee", 
       href: "https://shopee.ph/hobbyplusshop", 
       color: "#EE4D2D",
       icon: (
-        <svg fill="currentColor" viewBox="0 0 24 24">
+        <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
           <path d="M19 6.5h-1.28c-.47-2.31-2.49-4-4.88-4s-4.41 1.69-4.88 4H6.68c-.93 0-1.68.75-1.68 1.68V18c0 .93.75 1.68 1.68 1.68h10.64c.93 0 1.68-.75 1.68-1.68V8.18c0-.93-.75-1.68-1.68-1.68zM12.84 4.5c1.33 0 2.45.86 2.81 2H10.03c.36-1.14 1.48-2 2.81-2z" />
         </svg>
       )
@@ -51,92 +48,128 @@ export default function Hero({
       href: "https://www.lazada.com.ph/shop/hobby-plus-shop", 
       color: "#00008F",
       icon: (
-        <svg fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12.12 3.32C11.58 3.58 11.14 4.1 10.86 4.78 10.46 5.76 10.28 7.32 10.28 8.44L10.28 9.32 9.4 9.32C8.38 9.32 6.8 9.5 5.82 9.88 5.14 10.16 4.62 10.6 4.36 11.14 4.1 11.68 4.1 12.32 4.36 12.86 4.62 13.4 5.14 13.84 5.82 14.12 6.8 14.5 8.38 14.68 9.4 14.68L10.28 14.68 10.28 15.56C10.28 16.68 10.46 18.24 10.86 19.22 11.14 19.9 11.58 20.42 12.12 20.68 12.66 20.94 13.3 20.94 13.84 20.68 14.38 20.42 14.82 19.9 15.1 19.22 15.5 18.24 15.56 16.68 15.68 15.56L15.68 14.68 16.56 14.68C17.68 14.68 19.24 14.5 20.22 14.12 20.9 13.84 21.42 10.6 20.22 9.88 19.24 9.5 17.68 9.32 16.56 9.32L15.68 9.32 15.68 8.44C15.68 7.32 15.5 5.76 15.12 4.78 14.84 4.1 14.4 3.58 13.86 3.32 13.32 3.06 12.66 3.06 12.12 3.32Z" />
+        <svg fill="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+          <path d="M12.12 3.32C11.58 3.58 11.14 4.1 10.86 4.78 10.46 5.76 10.28 7.32 10.28 8.44L10.28 9.32 9.4 9.32C8.38 9.32 6.8 9.5 5.82 9.88 5.14 10.16 4.62 10.6 4.36 11.14 4.1 11.68 4.1 12.32 4.36 12.86 4.62 13.4 5.14 13.84 5.82 14.12 6.8 14.5 8.38 14.68 9.4 14.68L10.28 14.68 10.28 15.56C10.28 16.68 10.46 18.24 10.86 19.22 11.14 19.9 11.58 20.42 12.12 20.68 12.66 20.94 13.3 20.94 13.84 20.68 14.38 20.42 14.82 19.9 15.1 19.22 15.5 18.24 15.56 16.68 15.68 15.56L15.68 14.68 16.56 14.68C17.68 14.68 19.24 14.5 20.22 14.12 20.9 13.84 21.42 10.6 20.22 9.88 19.24 9.5 17.68 9.32 16.56 9.32L15.68 9.32L15.68 8.44C15.68 7.32 15.5 5.76 15.12 4.78 14.84 4.1 14.4 3.58 13.86 3.32 13.32 3.06 12.66 3.06 12.12 3.32Z" />
         </svg>
       )
     }
   ]
 }: HeroProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [skipAnimation] = useState(() => {
-    if (typeof window !== "undefined") {
-      const hasVisited = sessionStorage.getItem("joust_visited");
-      if (!hasVisited) {
-        sessionStorage.setItem("joust_visited", "true");
-        return true;
-      }
-    }
-    return false;
-  });
 
   useEffect(() => {
     if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    }, 8000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const animationClass = skipAnimation ? "" : "animate-slide-up";
-
   return (
-    <section className="relative h-[80vh] md:h-[90vh] min-h-[500px] md:min-h-[700px] w-full overflow-hidden bg-background font-questrial">
-      {/* Background Slideshow */}
+    <section className="relative h-[85vh] md:h-[95vh] min-h-[600px] w-full overflow-hidden bg-[#1B1B1B] font-questrial selection:bg-primary selection:text-black">
+      {/* Material Expressive Background Slideshow */}
       <div className="absolute inset-0 z-0">
-        {slides.map((slide, idx) => (
-          <div
-            key={idx}
-            className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${
-              idx === currentSlide ? "opacity-100 scale-105" : "opacity-0 scale-100"
-            }`}
-            style={{ transitionProperty: "opacity, transform" }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1.05 }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 2, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/40 to-background z-10" />
-            <div className="relative w-full h-full bg-neutral-900" />
-          </div>
-        ))}
+            <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/20 to-background z-10" />
+            <div className="relative w-full h-full bg-zinc-900" />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Rhythmic Scanline Micro-motion */}
+      <motion.div 
+        initial={{ top: "-100%" }}
+        animate={{ top: "200%" }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        className="absolute left-0 w-full h-40 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none z-10"
+      />
+
+      {/* Technical Diagnostic Brackets (Greeble) */}
+      <div className="absolute top-12 left-12 w-32 h-32 border-t border-l border-primary/20 pointer-events-none z-20" />
+      <div className="absolute bottom-12 right-12 w-32 h-32 border-b border-r border-primary/20 pointer-events-none z-20" />
+      
+      <div className="absolute top-12 right-12 flex flex-col items-end gap-1 z-20 opacity-20 hidden md:flex">
+        <span className="text-[8px] font-black tracking-widest text-primary">SYSTEM_INIT</span>
+        <span className="text-[8px] font-black tracking-widest text-white">LATENCY: 0.04ms</span>
+        <span className="text-[8px] font-black tracking-widest text-white">UPTIME: 100.0%</span>
       </div>
 
       {/* Main Content Overlay */}
-      <div className="relative z-20 h-full max-w-7xl mx-auto px-8 flex flex-col items-start justify-center text-left">
-        {/* Animated Logo */}
-        <div className={`mb-8 ${skipAnimation ? "" : "animate-in fade-in zoom-in duration-1000"} group`}>
-          <Image 
-            src={logo} 
-            width={240} 
-            height={240} 
-            alt="Hobby+ Logo" 
-            priority
-            className="w-48 md:w-80 drop-shadow-[0_0_30px_var(--color-primary-glow)] transition-all duration-700"
-            style={{ height: 'auto' }}
-          />
-        </div>
-
-        {/* Content Block */}
-        <div className={`max-w-2xl space-y-10 ${animationClass}`}>
-          <p className="text-foreground/80 text-lg md:text-2xl font-medium tracking-tight leading-relaxed font-questrial max-w-lg md:max-w-2xl">
-            {description}
-          </p>
-
-          {/* Customizable Storefront Buttons */}
-          <div className="flex flex-wrap items-center gap-4 font-poppins">
-            {storeButtons.map((btn, idx) => (
-              <BrandButton 
-                key={idx}
-                text={btn.text}
-                href={btn.href}
-                bgColor={btn.color}
-                icon={btn.icon}
-              />
-            ))}
+      <div className="relative z-20 h-full max-w-7xl mx-auto px-8 flex flex-col items-start justify-center">
+        {/* Animated Branding */}
+        <motion.div 
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="mb-12 group"
+        >
+          <div className="relative inline-block">
+            <Image 
+              src={logo} 
+              width={240} 
+              height={240} 
+              alt="Hobby+ Logo" 
+              priority
+              className="w-48 md:w-80 drop-shadow-[0_0_40px_rgba(82,185,70,0.4)] transition-all duration-700 group-hover:scale-105"
+              style={{ height: 'auto' }}
+            />
+            {/* Expressive Highlight Pulse */}
+            <motion.div 
+              animate={{ opacity: [0, 0.5, 0], scale: [1, 1.2, 1] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="absolute -inset-4 bg-primary/5 blur-3xl -z-10 rounded-full"
+            />
           </div>
+        </motion.div>
+
+        {/* Sensory Content Block */}
+        <div className="max-w-2xl space-y-12">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-foreground/90 text-lg md:text-2xl font-black uppercase tracking-tight leading-relaxed font-poppins max-w-lg md:max-w-2xl"
+          >
+            {description}
+          </motion.p>
+
+          {/* Tactile Storefront Actions */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="flex flex-wrap items-center gap-6 font-poppins"
+          >
+            {storeButtons.map((btn, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <BrandButton 
+                  text={btn.text}
+                  href={btn.href}
+                  bgColor={btn.color}
+                  icon={btn.icon}
+                  className="rounded-xl shadow-2xl transition-all duration-300"
+                />
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </div>
 
-      {/* Slide Indicators */}
+      {/* Rhythmic Slide Indicators */}
       {slides.length > 1 && (
-        <div className="absolute bottom-16 left-8 z-30 flex items-center gap-4">
+        <div className="absolute bottom-16 left-8 z-30 flex items-center gap-6">
           {slides.map((_, idx) => (
             <button
               key={idx}
@@ -144,20 +177,36 @@ export default function Hero({
               className="group py-4 px-2"
               aria-label={`Go to slide ${idx + 1}`}
             >
-              <div className={`h-[2px] transition-all duration-700 ${
-                idx === currentSlide ? "w-16 bg-primary shadow-[0_0_10px_var(--color-primary-glow)]" : "w-8 bg-foreground/20 group-hover:bg-foreground/40"
-              }`} />
+              <div className="relative">
+                <div className={`h-[2px] transition-all duration-700 ${
+                  idx === currentSlide ? "w-20 bg-primary shadow-[0_0_20px_rgba(82,185,70,0.6)]" : "w-10 bg-foreground/10 group-hover:bg-foreground/30"
+                }`} />
+                {idx === currentSlide && (
+                  <motion.div 
+                    layoutId="activeIndicator"
+                    className="absolute -top-1 left-0 w-full h-full bg-primary/20 blur-sm"
+                  />
+                )}
+              </div>
             </button>
           ))}
         </div>
       )}
 
-      {/* Side Label - Photo Description */}
-      <div className="absolute right-8 bottom-24 hidden lg:block z-20">
-        <div className="rotate-90 origin-right text-[10px] font-black uppercase tracking-[0.8em] text-foreground/20 whitespace-nowrap transition-all duration-1000 font-poppins">
-          {slides[currentSlide].photoDesc || "HOBBY PLUS — PHOTO ARCHIVE"}
-        </div>
+      {/* Sensory Side Label */}
+      <div className="absolute right-12 bottom-32 hidden lg:block z-20">
+        <motion.div 
+          key={currentSlide}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rotate-90 origin-right text-[10px] font-black uppercase tracking-[1em] text-primary/30 whitespace-nowrap font-poppins"
+        >
+          {slides[currentSlide].photoDesc || "TECHNICAL ARCHIVE // REPOSITORY 01"}
+        </motion.div>
       </div>
+
+      {/* Bottom Aesthetic Bar */}
+      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent z-30" />
     </section>
   );
 }

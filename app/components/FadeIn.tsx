@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 
 interface FadeInProps {
   children: React.ReactNode;
@@ -45,14 +45,14 @@ const containerVariants = {
  */
 export function StaggerContainer({ children, className = "" }: FadeInProps) {
   return (
-    <m.motion.div
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
       className={className}
     >
       {children}
-    </m.motion.div>
+    </motion.div>
   );
 }
 
@@ -62,11 +62,11 @@ export function StaggerContainer({ children, className = "" }: FadeInProps) {
  */
 export default function FadeIn({ children, className = "" }: FadeInProps) {
   return (
-    <m.motion.div
+    <motion.div
       variants={revealVariants}
       className={className}
     >
       {children}
-    </m.motion.div>
+    </motion.div>
   );
 }

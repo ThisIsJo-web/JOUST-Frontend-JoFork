@@ -1,7 +1,6 @@
 "use client";
-
 import React from "react";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 
 interface BentoGridProps {
   children: React.ReactNode;
@@ -10,14 +9,14 @@ interface BentoGridProps {
 
 export function BentoGrid({ children, className = "" }: BentoGridProps) {
   return (
-    <m.motion.div 
+    <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, staggerChildren: 0.1 }}
       className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-[minmax(200px,auto)] gap-6 md:gap-8 ${className}`}
     >
       {children}
-    </m.motion.div>
+    </motion.div>
   );
 }
 
@@ -46,7 +45,7 @@ export function BentoItem({
   };
 
   return (
-    <m.motion.div 
+    <motion.div 
       variants={{
         hidden: { opacity: 0, scale: 0.95 },
         visible: { opacity: 1, scale: 1 }
@@ -54,7 +53,7 @@ export function BentoItem({
       className={`md:col-span-2 ${colSpans[colSpan]} ${rowSpans[rowSpan]} ${className}`}
     >
       {children}
-    </m.motion.div>
+    </motion.div>
   );
 }
 
@@ -78,23 +77,42 @@ export function BentoBox({
   };
 
   return (
-    <m.motion.div 
-      whileHover={{ y: -4, x: -4 }}
-      whileTap={{ scale: 0.99, x: 0, y: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className={`h-full relative overflow-hidden flex flex-col group transition-all duration-200 ${themes[theme]} ${noPadding ? "" : "p-8"} ${className}`}
+    <motion.div 
+      whileHover={{ 
+        y: -6, 
+        x: -6,
+        transition: { type: "spring", stiffness: 300, damping: 15 }
+      }}
+      whileTap={{ 
+        scale: 0.98, 
+        x: 0, 
+        y: 0,
+        transition: { type: "spring", stiffness: 500, damping: 30 }
+      }}
+      className={`h-full relative overflow-hidden flex flex-col group transition-all duration-300 ${themes[theme]} ${noPadding ? "" : "p-8"} ${className}`}
     >
-      {/* Purpose-driven Corner Accents */}
-      <div className="absolute top-0 left-0 w-6 h-1 bg-primary/20 group-hover:bg-primary transition-all duration-300" />
-      <div className="absolute top-0 left-0 w-1 h-6 bg-primary/20 group-hover:bg-primary transition-all duration-300" />
+      {/* Material Expressive Corner Accents */}
+      <div className="absolute top-0 left-0 w-8 h-1.5 bg-primary/20 group-hover:bg-primary group-hover:w-12 transition-all duration-500 ease-expressive" />
+      <div className="absolute top-0 left-0 w-1.5 h-8 bg-primary/20 group-hover:bg-primary group-hover:h-12 transition-all duration-500 ease-expressive" />
+      
+      {/* Bottom Right Diagnostic Corner */}
+      <div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-primary/0 group-hover:border-primary/40 transition-all duration-500" />
 
       <div className="relative z-10 flex-1 flex flex-col">
         {children}
       </div>
       
-      {/* Tactile Highlight Overlay */}
-      <div className="absolute inset-0 bg-primary/0 group-active:bg-primary/5 transition-colors pointer-events-none" />
-    </m.motion.div>
+      {/* Tactile Sensory Highlight */}
+      <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/[0.02] group-active:bg-primary/10 transition-colors pointer-events-none" />
+      
+      {/* Animated Scanline Micro-motion */}
+      <motion.div 
+        initial={{ top: "-100%" }}
+        animate={{ top: "200%" }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        className="absolute left-0 w-full h-24 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none -z-0"
+      />
+    </motion.div>
   );
 }
 

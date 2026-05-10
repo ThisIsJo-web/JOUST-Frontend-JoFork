@@ -15,15 +15,16 @@ interface UserRankProps {
   loading?: boolean;
 }
 
-/**
- * UserRankCard - A high-fidelity card showcasing the current user's global status.
- */
 export default function UserRankCard({ stats, loading }: UserRankProps) {
   if (loading) {
     return (
-      <div className="w-full bg-foreground/5 border border-foreground/10 p-8 md:p-12 animate-pulse relative overflow-hidden">
-        <div className="h-10 bg-foreground/10 w-1/3 mb-4" />
-        <div className="h-6 bg-foreground/10 w-1/4" />
+      <div className="w-full bg-black border-4 border-white/10 p-12 animate-pulse">
+        <div className="h-20 bg-white/5 w-1/2 mb-8" />
+        <div className="grid grid-cols-3 gap-12">
+            <div className="h-24 bg-white/5" />
+            <div className="h-24 bg-white/5" />
+            <div className="h-24 bg-white/5" />
+        </div>
       </div>
     );
   }
@@ -32,55 +33,53 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
 
   return (
     <m.motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="group relative w-full bg-background border border-foreground/10 p-8 md:p-12 overflow-hidden transition-all duration-500 hover:border-primary/40 font-questrial shadow-[0_0_20px_rgba(var(--color-primary),0.05)]"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="group relative w-full bg-black border-4 border-white p-12 hover:shadow-[24px_24px_0px_0px_#52B946] transition-all duration-500 overflow-hidden"
     >
-      {/* Background Accents */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
-      
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
-        <div className="text-center md:text-left space-y-4">
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12">
+        <div className="text-center md:text-left space-y-6">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-2 font-poppins">Authenticated Pilot</p>
-            <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-foreground leading-none font-poppins">
+            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-primary mb-4 font-poppins">CURRENT STANDING</p>
+            <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white leading-none font-poppins italic">
               {stats.username}
             </h2>
           </div>
           
-          <div className="flex flex-wrap items-center gap-4 justify-center md:justify-start font-poppins">
-            <div className="bg-primary text-background px-4 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_var(--color-primary-glow)]">
-              Rank #{stats.rank}
+          <div className="flex flex-wrap items-center gap-6 justify-center md:justify-start">
+            <div className="bg-primary text-black px-8 py-3 text-xl font-black uppercase tracking-widest shadow-[8px_8px_0px_0px_white]">
+              RANK #{stats.rank}
             </div>
-            <div className="bg-foreground/5 border border-foreground/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/60">
-              {stats.points} Total Points
+            <div className="bg-white/5 border-2 border-white/10 px-8 py-3 text-xl font-black uppercase tracking-widest text-white">
+              {stats.points} POINTS
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-8 md:gap-16 border-t md:border-t-0 md:border-l border-foreground/10 pt-10 md:pt-0 md:pl-16 w-full md:w-auto font-poppins">
+        <div className="grid grid-cols-3 gap-12 md:gap-24 border-t-4 md:border-t-0 md:border-l-4 border-white/10 pt-12 md:pt-0 md:pl-24 w-full md:w-auto">
           <div className="text-center md:text-left">
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Wins</p>
-            <p className="text-3xl font-black text-primary-light">{stats.wins}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-4 font-poppins">WINS</p>
+            <p className="text-5xl md:text-7xl font-black text-white italic tracking-tighter font-poppins">{stats.wins}</p>
           </div>
           <div className="text-center md:text-left">
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Losses</p>
-            <p className="text-3xl font-black text-foreground/60">{stats.losses}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-4 font-poppins">LOSSES</p>
+            <p className="text-5xl md:text-7xl font-black text-white/40 italic tracking-tighter font-poppins">{stats.losses}</p>
           </div>
           <div className="text-center md:text-left">
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">Ratio</p>
-            <p className="text-3xl font-black text-primary">
-              {(stats.matchWinPct * 100).toFixed(1)}%
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-4 font-poppins">WIN RATE</p>
+            <p className="text-5xl md:text-7xl font-black text-primary italic tracking-tighter font-poppins">
+              {(stats.matchWinPct * 100).toFixed(0)}%
             </p>
           </div>
         </div>
       </div>
 
-      {/* Decorative Corner Element */}
-      <div className="absolute bottom-0 right-0 w-12 h-12 bg-primary/5 skew-x-12 translate-x-6 translate-y-6" />
+      {/* Industrial Accents */}
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <div className="text-[8px] font-black uppercase tracking-widest text-white rotate-90 origin-top-right font-poppins">
+          SESSION ACTIVE // {new Date().getFullYear()}
+        </div>
+      </div>
     </m.motion.div>
   );
 }

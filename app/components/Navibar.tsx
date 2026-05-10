@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
 import { useUser } from "./UserProvider";
 
@@ -74,25 +74,31 @@ export default function Navibar() {
  
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-10">
-            {navLinks.map((link) => {
+            {navLinks.map((link, idx) => {
               const isActive = pathname === link.href;
               return (
-                <Link
+                <motion.div
                   key={link.name}
-                  href={link.href}
-                  className={`text-[11px] font-black uppercase tracking-[0.4em] transition-all duration-300 relative py-2 font-poppins ${
-                    isActive ? "text-primary" : "text-white/40 hover:text-white"
-                  }`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1, type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  {link.name}
-                  {isActive && (
-                    <m.motion.div 
-                      layoutId="activeNavIndicator"
-                      className="absolute -bottom-1 left-0 w-full h-[3px] bg-primary shadow-[0_0_20px_rgba(var(--color-primary),1)]"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </Link>
+                  <Link
+                    href={link.href}
+                    className={`text-[11px] font-black uppercase tracking-[0.4em] transition-all duration-300 relative py-2 font-poppins hover:scale-105 active:scale-95 block ${
+                      isActive ? "text-primary" : "text-white/40 hover:text-white"
+                    }`}
+                  >
+                    {link.name}
+                    {isActive && (
+                      <motion.div 
+                        layoutId="activeNavIndicator"
+                        className="absolute -bottom-1 left-0 w-full h-[3px] bg-primary shadow-[0_0_20px_rgba(var(--color-primary),1)]"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
               );
             })}
           </nav>
@@ -102,7 +108,7 @@ export default function Navibar() {
         <div className="flex items-center gap-6">
           {user ? (
             <div className="relative" ref={profileMenuRef}>
-              <m.motion.button
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -113,7 +119,7 @@ export default function Navibar() {
                 }`}
               >
                 {user.username?.[0]?.toUpperCase() || "U"}
-              </m.motion.button>
+              </motion.button>
 
               {/* Profile Dropdown */}
               {isProfileMenuOpen && (
@@ -133,6 +139,17 @@ export default function Navibar() {
                       PROFILE
                     </Link>
 
+                    {user?.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER") && (
+                      <Link
+                        href="/tournaments/manage"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-6 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-primary hover:bg-white/5 transition-all font-poppins"
+                      >
+                        <div className="w-2 h-2 bg-primary/40 group-hover:bg-primary" />
+                        MANAGE TOURNAMENTS
+                      </Link>
+                    )}
+
                     <button
                       onClick={handleSignOut}
                       className="w-full flex items-center gap-6 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all text-left font-poppins"
@@ -145,7 +162,7 @@ export default function Navibar() {
               )}
             </div>
           ) : (
-            <m.motion.div
+            <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -155,7 +172,7 @@ export default function Navibar() {
               >
                 SIGN IN
               </Link>
-            </m.motion.div>
+            </motion.div>
           )}
 
         </div>

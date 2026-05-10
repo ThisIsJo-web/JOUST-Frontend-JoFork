@@ -18,9 +18,10 @@ interface TournamentListProps {
   tournaments: Tournament[];
   variant?: "default" | "bento";
   limit?: number;
+  canManage?: boolean;
 }
 
-export default function TournamentList({ tournaments, variant = "default", limit }: TournamentListProps) {
+export default function TournamentList({ tournaments, variant = "default", limit, canManage }: TournamentListProps) {
   const displayTournaments = limit ? tournaments.slice(0, limit) : tournaments;
   const sorted = [...displayTournaments].sort((a, b) => 
     new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
@@ -52,9 +53,19 @@ export default function TournamentList({ tournaments, variant = "default", limit
     >
       {variant === "bento" && (
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/30">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary font-poppins">
-            Active Tournaments
-          </h3>
+          <div className="flex items-center gap-6">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary font-poppins">
+              Active Tournaments
+            </h3>
+            {canManage && (
+              <Link 
+                href="/tournaments/manage" 
+                className="bg-white text-black px-4 py-1.5 text-[9px] font-black uppercase tracking-widest hover:bg-primary transition-colors"
+              >
+                MANAGE TOURNAMENTS
+              </Link>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={prev}
@@ -102,7 +113,7 @@ export default function TournamentList({ tournaments, variant = "default", limit
                   }}
                 >
                   <img 
-                    src={`https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop&sig=${sorted[currentIndex].id}`} 
+                    src={sorted[currentIndex].image || "/placeholder.jpg"} 
                     alt={sorted[currentIndex].name}
                     className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 pointer-events-none"
                   />

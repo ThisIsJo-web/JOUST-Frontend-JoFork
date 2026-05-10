@@ -97,7 +97,7 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
     });
 
     if (res.ok) {
-      onSuccess("Arena Initialized Successfully");
+      onSuccess("Tournament Initialized Successfully");
     } else {
       const data = await safeJson(res);
       onSuccess(`Error: ${data?.message || "Failed to create"}`);
@@ -141,7 +141,7 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
         {/* Locked Details Section */}
         <div className={`space-y-12 transition-all duration-700 ${!selectedCardGameId ? "opacity-10 grayscale blur-sm pointer-events-none translate-y-4" : "opacity-100 translate-y-0"}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
-            <Field label="Arena Designation">
+            <Field label="Tournament Name">
               <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="E.G. CHAMPIONSHIP ALPHA" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} required />
             </Field>
             <Field label="Combat Format">
@@ -158,7 +158,7 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
             <Field label="Prize Pool (₱)">
               <input type="number" value={prizePool} onChange={e => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="0.00" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} />
             </Field>
-            <Field label="Arena Venue">
+            <Field label="Venue">
               <input type="text" value={venue} onChange={e => setVenue(e.target.value)} placeholder="E.G. VIRTUAL STADIUM" className={`${inputCls} bg-transparent border-white/10 hover:border-white/20`} />
             </Field>
             <Field label="Operational Date">
@@ -246,7 +246,7 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
                 Discard
               </button>
               <button type="submit" className="flex-1 md:flex-none md:px-16 h-16 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-2xl shadow-primary/20">
-                Initialize Arena
+                Create Tournament
               </button>
             </div>
           </div>

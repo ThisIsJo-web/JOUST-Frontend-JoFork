@@ -102,7 +102,7 @@ function TournamentViewContent() {
     );
   }
 
-  if (!tournament) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-black uppercase tracking-widest">Arena Not Found</div>;
+  if (!tournament) return <div className="min-h-screen bg-background flex items-center justify-center text-foreground font-black uppercase tracking-widest">Tournament Not Found</div>;
 
   // The backend JWT uses `sub` as the user ID, so we check both fields for safety
   const myId = user?.sub || (user as any)?.id;
@@ -168,11 +168,11 @@ function TournamentViewContent() {
                             disabled={joining}
                             className="w-full py-6 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
                         >
-                            {joining ? "DEPLOYING..." : "JOIN ARENA"}
+                            {joining ? "JOINING..." : "JOIN TOURNAMENT"}
                         </button>
                     ) : (
                         <div className="w-full py-6 bg-foreground/10 text-foreground/40 text-center font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl font-poppins">
-                            {isJoined ? "YOU ARE ENLISTED" : isFull ? "ARENA CAPACITY REACHED" : `STATUS: ${tournament.status}`}
+                            {isJoined ? "YOU HAVE JOINED" : isFull ? "TOURNAMENT FULL" : `STATUS: ${tournament.status}`}
                         </div>
                     )}
 

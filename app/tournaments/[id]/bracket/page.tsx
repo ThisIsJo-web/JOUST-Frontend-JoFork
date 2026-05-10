@@ -68,7 +68,7 @@ function BracketViewContent() {
       if (tRes.ok) {
         const t = await safeJson(tRes);
         setTournament(t);
-        addLog("ARENA LOADED", `${t.name.toUpperCase()} STATUS: ${t.status}`);
+        addLog("TOURNAMENT DATA READY", `${t.name.toUpperCase()} STATUS: ${t.status}`);
       }
       const lRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.LEADERBOARD(tournamentId!));
       if (lRes.ok) setLeaderboard(await safeJson(lRes) ?? []);
@@ -80,7 +80,7 @@ function BracketViewContent() {
     if (!confirm("Initiate Combat? This locks registration and generates the final bracket.")) return;
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
     const data = await safeJson(res);
-    if (res.ok) { addLog("ARENA START", "COMBAT INITIATED"); fetchTournamentData(); }
+    if (res.ok) { addLog("TOURNAMENT STARTED", "MATCHES INITIALIZED"); fetchTournamentData(); }
     else { addLog("ERROR", data?.message || "START FAILED"); }
   };
 
@@ -92,7 +92,7 @@ function BracketViewContent() {
   };
 
   const handleAddGuest = async () => {
-    if (!guestUsername || tournament?.participants.length >= tournament?.maxPlayers) { addLog("ERROR", "ARENA CAPACITY EXCEEDED"); return; }
+    if (!guestUsername || tournament?.participants.length >= tournament?.maxPlayers) { addLog("ERROR", "MAX CAPACITY REACHED"); return; }
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: guestUsername }) });
     const data = await safeJson(res);
     if (res.ok) { addLog("REGISTRATION", "GUEST UNIT DEPLOYED"); setGuestUsername(""); fetchTournamentData(); }
@@ -148,7 +148,7 @@ function BracketViewContent() {
                   {isAdmin ? "SYSTEM ADMINISTRATOR" : "AUTHORIZED VIEWER"}
                 </span>
                 <div className="w-1 h-1 rounded-full bg-foreground/10" />
-                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-foreground/20">ARENA TERMINAL v2.0</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-foreground/20">TOURNAMENT CONTROLLER v2.0</span>
               </div>
             </div>
           </div>

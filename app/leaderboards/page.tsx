@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
+import HomeFrame from "../components/home/HomeFrame";
+import UserRankCard from "../components/leaderboard/UserRankCard";
+import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
+import LeaderboardHero from "../components/leaderboard/LeaderboardHero";
+import FadeIn, { StaggerContainer } from "../components/FadeIn";
 
 interface GlobalLeaderboardEntry {
   rank: number;
@@ -16,12 +21,6 @@ interface GlobalLeaderboardEntry {
   omw: number;
   oomw: number;
 }
-
-import HomeFrame from "../components/home/HomeFrame";
-import SectionHeader from "../components/home/SectionHeader";
-import UserRankCard from "../components/leaderboard/UserRankCard";
-import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
-import FadeIn, { StaggerContainer } from "../components/FadeIn";
 
 function LeaderboardsContent() {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
@@ -62,77 +61,56 @@ function LeaderboardsContent() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchGlobalLeaderboard();
-    }, 0);
-    return () => clearTimeout(timer);
+    fetchGlobalLeaderboard();
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <HomeFrame className="pt-32 pb-20" showPattern={false}>
-        <StaggerContainer className="max-w-7xl mx-auto px-8">
+    <HomeFrame className="py-24 md:py-32" showPattern={true}>
+      <StaggerContainer className="max-w-7xl mx-auto px-6 md:px-8 space-y-24">
+        
+        <LeaderboardHero count={leaderboard.length} />
+
+        {userStats && (
           <FadeIn>
-            <SectionHeader 
-              title="Leaderboards" 
-              subtitle="Global Pilot Rankings" 
-              description="The most elite competitors in the JOUST ecosystem. Ranked by combat performance and victory consistency."
-            />
+            <UserRankCard stats={userStats} loading={loading} />
           </FadeIn>
+        )}
 
-          {userStats && (
-            <FadeIn>
-              <div className="mb-20">
-                <UserRankCard stats={userStats} loading={loading} />
+        <FadeIn>
+          <div className="space-y-12">
+            {loading ? (
+              <LeaderboardTable entries={[]} loading={true} />
+            ) : error ? (
+              <div className="p-20 border-4 border-red-500 bg-black text-center font-poppins shadow-[16px_16px_0px_0px_#ef4444]">
+                <p className="text-red-500 text-xl font-black uppercase tracking-[0.3em] mb-8">{error}</p>
+                <button 
+                  onClick={fetchGlobalLeaderboard}
+                  className="px-12 py-6 bg-red-500 text-white text-xl font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-[8px_8px_0px_0px_white]"
+                >
+                  RETRY CONNECTION
+                </button>
               </div>
-            </FadeIn>
-          )}
-
-          <FadeIn>
-            <div className="mt-20">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xs font-black uppercase tracking-[0.5em] text-primary">Top Performers</h3>
-                {leaderboard.length > 0 && (
-                  <span className="text-[10px] font-black uppercase tracking-widest text-foreground/20">
-                    {leaderboard.length} Pilots Synchronized
-                  </span>
-                )}
+            ) : leaderboard.length === 0 ? (
+              <div className="p-24 border-4 border-white/10 bg-black text-center font-poppins italic">
+                <p className="text-white/20 text-xl font-black uppercase tracking-[0.3em]">NO RANKINGS FOUND</p>
               </div>
-
-              {loading ? (
-                <LeaderboardTable entries={[]} loading={true} />
-              ) : error ? (
-                <div className="p-20 border border-red-500/10 bg-red-500/5 text-center font-poppins">
-                  <p className="text-red-500 text-xs font-black uppercase tracking-[0.3em] mb-6">{error}</p>
-                  <button 
-                    onClick={fetchGlobalLeaderboard}
-                    className="px-10 py-4 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all"
-                  >
-                    Reconnect
-                  </button>
-                </div>
-              ) : leaderboard.length === 0 ? (
-                <div className="p-24 border border-foreground/5 bg-foreground/5 text-center font-poppins">
-                  <p className="text-foreground/20 text-xs font-black uppercase tracking-[0.3em]">No ranking data currently available</p>
-                </div>
-              ) : (
-                <LeaderboardTable entries={leaderboard} />
-              )}
-            </div>
-          </FadeIn>
-        </StaggerContainer>
-      </HomeFrame>
-    </div>
+            ) : (
+              <LeaderboardTable entries={leaderboard} />
+            )}
+          </div>
+        </FadeIn>
+      </StaggerContainer>
+    </HomeFrame>
   );
 }
 
 export default function LeaderboardsPage() {
   return (
     <Suspense fallback={
-        <div className="h-screen w-full bg-background flex items-center justify-center">
+        <div className="h-screen w-full bg-[#1B1B1B] flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Loading Leaderboards</p>
+                <div className="w-16 h-16 border-8 border-white/5 border-t-primary animate-spin" />
+                <p className="text-xl font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins italic">LOADING LEADERBOARD</p>
             </div>
         </div>
     }>
