@@ -125,7 +125,6 @@ function TournamentViewContent() {
                         fill 
                         className="object-cover transition-transform duration-1000 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                     <div className="absolute bottom-12 left-12 right-12">
                         <span className="inline-block px-4 py-1.5 text-[10px] font-black tracking-[0.3em] text-white uppercase rounded-md bg-primary font-poppins mb-6">
                             {tournament.status} Event

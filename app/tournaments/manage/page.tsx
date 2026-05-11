@@ -8,11 +8,11 @@ import TournamentRow from "../../components/tournaments/manage/TournamentRow";
 
 export default function ManageTournaments() {
   const router = useRouter();
-  const [loading, setLoading]               = useState(true);
-  const [tournaments, setTournaments]       = useState<Tournament[]>([]);
-  const [user, setUser]                     = useState<{ roles: string[]; id: string; sub?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [user, setUser] = useState<{ roles: string[]; id: string; sub?: string } | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [message, setMessage]               = useState("");
+  const [message, setMessage] = useState("");
 
   const refresh = async () => {
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);

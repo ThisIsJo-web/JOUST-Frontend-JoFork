@@ -1,5 +1,5 @@
-"use client";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface AdminUser {
   id: string;
@@ -8,199 +8,195 @@ export interface AdminUser {
   email: string;
   roles: string[];
   isGuest: boolean;
-  guestName?: string;
-  expiresAt?: string;
-  isExpired?: boolean;
 }
 
 interface Props {
   users: AdminUser[];
-  onDelete: (userId: string) => void;
-  onBatchDelete: (userIds: string[]) => void;
+  onDelete: (id: string) => void;
+  onBatchDelete: (ids: string[]) => void;
   onConvert: (user: AdminUser) => void;
   onEdit: (user: AdminUser) => void;
   onCreateClick: () => void;
 }
 
 export default function UserRegistry({ users, onDelete, onBatchDelete, onConvert, onEdit, onCreateClick }: Props) {
-  const [activeTab, setActiveTab] = useState<"registered" | "guests">("registered");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState<"ALL" | "REGISTERED" | "GUEST">("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isBatchMode, setIsBatchMode] = useState(false);
-  
-  const registeredUsers = users.filter(u => !u.isGuest);
-  const guestUsers = users.filter(u => u.isGuest);
+
+  const filteredUsers = users.filter(u => {
+    const usernameMatch = (u.username || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const emailMatch = (u.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+    return (usernameMatch || emailMatch) && (filter === "ALL" || (filter === "GUEST" ? u.isGuest : !u.isGuest));
+  });
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    next.has(id) ? next.delete(id) : next.add(id);
     setSelectedIds(next);
   };
 
-  const toggleAll = () => {
-    if (selectedIds.size === guestUsers.length) {
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredUsers.length && filteredUsers.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(guestUsers.map(u => (u.id || u.sub) as string)));
+      setSelectedIds(new Set(filteredUsers.map(u => (u.sub || u.id) as string)));
     }
   };
 
-  const handleTabChange = (tab: "registered" | "guests") => {
-    setActiveTab(tab);
-    setSelectedIds(new Set());
-    setIsBatchMode(false);
-  };
-
   return (
-    <section className="bg-neutral-900 border border-neutral-800 rounded-none overflow-hidden relative group flex flex-col min-h-[600px] transition-all duration-500 hover:border-primary/30 hover:shadow-[0_0_40px_rgba(82,185,70,0.05)]">
-      {/* Header / Tabs */}
-      <div className="flex border-b border-neutral-800 bg-neutral-950 items-stretch">
-        <button 
-          onClick={() => handleTabChange("registered")}
-          className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-r border-neutral-800 ${activeTab === 'registered' ? 'bg-primary text-background' : 'text-neutral-500 hover:text-white hover:bg-neutral-900'}`}
-        >
-          Users
-        </button>
-        <button 
-          onClick={() => handleTabChange("guests")}
-          className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-r border-neutral-800 ${activeTab === 'guests' ? 'bg-primary text-background' : 'text-neutral-500 hover:text-white hover:bg-neutral-900'}`}
-        >
-          Guests
-        </button>
-        <div className="flex-1" />
-        
-        {activeTab === "guests" && (
-          <button 
-            onClick={() => { setIsBatchMode(!isBatchMode); setSelectedIds(new Set()); }}
-            className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-l border-neutral-800 ${isBatchMode ? 'bg-amber-500 text-background' : 'text-amber-500 hover:bg-amber-500/10'}`}
-          >
-            {isBatchMode ? "Exit Bulk Mode" : "Bulk Select"}
-          </button>
-        )}
+    <div className="bg-black border border-white/5 rounded-lg shadow-2xl flex flex-col h-[700px] overflow-hidden">
+      {/* Header */}
+      <div className="p-6 border-b border-white/10 bg-white/[0.02] space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              USER_MANAGEMENT
+            </h2>
+            <p className="text-[10px] text-white/40 font-medium uppercase mt-1 tracking-widest">Managing {filteredUsers.length} users</p>
+          </div>
+          <div className="flex gap-3">
+            <AnimatePresence>
+              {selectedIds.size > 0 && (
+                <motion.button 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={() => onBatchDelete(Array.from(selectedIds))}
+                  className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all rounded-md"
+                >
+                  Delete Selected ({selectedIds.size})
+                </motion.button>
+              )}
+            </AnimatePresence>
+            <button onClick={onCreateClick} className="px-4 py-2 bg-primary text-black text-[10px] font-bold uppercase tracking-widest hover:shadow-[0_0_15px_rgba(82,185,70,0.4)] transition-all rounded-md">
+              Create New User
+            </button>
+          </div>
+        </div>
 
-        {selectedIds.size > 0 && (
-          <button 
-            onClick={() => onBatchDelete(Array.from(selectedIds))}
-            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all bg-red-600 text-white hover:bg-red-700 border-l border-neutral-800"
-          >
-            Delete {selectedIds.size}
-          </button>
-        )}
-        
-        <button 
-          onClick={onCreateClick}
-          className="px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all bg-primary/10 text-primary hover:bg-primary hover:text-background border-l border-neutral-800"
-        >
-          + Create
-        </button>
-      </div>
-
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="p-0 flex-1 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-neutral-950 text-neutral-400 font-mono text-xs uppercase tracking-widest sticky top-0 z-10 border-b border-neutral-800">
-              <tr>
-                {isBatchMode && activeTab === "guests" && (
-                  <th className="px-6 py-4 w-10">
-                    <input 
-                      type="checkbox" 
-                      className="accent-primary"
-                      checked={selectedIds.size > 0 && selectedIds.size === guestUsers.length}
-                      onChange={toggleAll}
-                    />
-                  </th>
-                )}
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Roles</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/50">
-              {(activeTab === 'registered' ? registeredUsers : guestUsers).map(u => {
-                const uId = u.id || u.sub;
-                if (!uId) return null;
-                const isSelected = selectedIds.has(uId);
-                return (
-                  <tr key={uId} className={`hover:bg-primary/[0.03] transition-all duration-300 group/row border-b border-neutral-800/50 last:border-b-0 ${isSelected ? 'bg-primary/10' : ''}`}>
-                    {isBatchMode && activeTab === "guests" && (
-                      <td className="px-6 py-4">
-                         <input 
-                           type="checkbox" 
-                           className="accent-primary"
-                           checked={isSelected}
-                           onChange={() => toggleSelect(uId)}
-                         />
-                      </td>
-                    )}
-                    <td className="px-6 py-4 font-bold">
-                      <div className="flex flex-col">
-                        <span className="text-foreground">{u.username || "Guest"}</span>
-                        <span className="text-[10px] text-neutral-500 font-normal lowercase">{u.email}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-1 flex-wrap items-center">
-                        {u.isGuest ? (
-                          <>
-                            <span className="text-[9px] px-2 py-0.5 bg-neutral-800 text-neutral-400 border border-neutral-700 uppercase font-black tracking-widest">Guest</span>
-                            {u.expiresAt && (
-                              <span className={`text-[9px] px-2 py-0.5 font-mono ${u.isExpired || new Date(u.expiresAt) < new Date() ? 'text-red-500 bg-red-500/10 border border-red-500/20' : 'text-amber-500 bg-amber-500/10 border border-amber-500/20'}`}>
-                                {(() => {
-                                  const left = new Date(u.expiresAt).getTime() - new Date().getTime();
-                                  if (left <= 0 || u.isExpired) return "EXPIRED";
-                                  const mins = Math.floor(left / 60000);
-                                  const secs = Math.floor((left % 60000) / 1000);
-                                  if (mins > 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-                                  return `${mins}m ${secs}s`;
-                                })()}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          u.roles?.map(r => (
-                            <span key={r} className={`text-[9px] px-2 py-0.5 uppercase tracking-widest font-black ${
-                              r === 'ADMIN'     ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
-                              r === 'ORGANIZER' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
-                                                 'bg-neutral-800 text-neutral-300'
-                            }`}>{r}</span>
-                          ))
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className={`flex justify-end gap-2 transition-opacity ${isSelected || isBatchMode ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'}`}>
-                        {u.isGuest ? (
-                          <button 
-                            onClick={() => onConvert(u)}
-                            className="text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-background border border-primary/30 px-3 py-1.5 transition-all"
-                          >
-                            Convert
-                          </button>
-                        ) : (
-                          <>
-                            <button 
-                              onClick={() => onEdit(u)}
-                              className="text-[9px] font-black uppercase tracking-widest text-neutral-400 hover:text-white hover:border-white/20 border border-neutral-700 px-3 py-1.5 transition-all duration-300 active:scale-95"
-                            >
-                              Edit
-                            </button>
-                          </>
-                        )}
-                        <button 
-                          onClick={() => onDelete(uId)}
-                          className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white bg-red-600/10 hover:bg-red-600 border border-red-600/20 px-3 py-1.5 transition-all duration-300 active:scale-95"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <input 
+              type="text" 
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 px-10 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-primary/50 focus:bg-white/[0.07] transition-all rounded-md"
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div className="flex bg-white/5 border border-white/10 p-1 rounded-md">
+            {(["ALL", "REGISTERED", "GUEST"] as const).map(f => (
+              <button 
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest transition-all rounded ${filter === f ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60"}`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-    </section>
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto custom-scrollbar bg-black">
+        <table className="w-full text-left border-collapse table-fixed">
+          <thead className="sticky top-0 bg-[#0A0A0A] border-b border-white/10 z-20 shadow-xl">
+            <tr>
+              <th className="px-6 py-4 w-16 text-center">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.size === filteredUsers.length && filteredUsers.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 bg-black border-2 border-white/20 rounded cursor-pointer accent-primary"
+                />
+              </th>
+              <th className="px-6 py-4 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">User Identity</th>
+              <th className="px-6 py-4 w-48 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Access Level</th>
+              <th className="px-6 py-4 w-48 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/[0.03]">
+            {filteredUsers.map((u, idx) => {
+              const uid = (u.sub || u.id) as string;
+              const isSelected = selectedIds.has(uid);
+              return (
+                <motion.tr 
+                  key={uid}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`group transition-all ${isSelected ? "bg-primary/[0.04]" : "hover:bg-white/[0.02]"}`}
+                >
+                  <td className="px-6 py-4 text-center">
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={() => toggleSelect(uid)}
+                      className="w-4 h-4 bg-black border-2 border-white/20 rounded cursor-pointer accent-primary"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 shrink-0 rounded flex items-center justify-center text-xs font-black border transition-all ${u.isGuest ? "bg-white/5 text-white/30 border-white/10" : "bg-primary/10 text-primary border-primary/20"}`}>
+                        {u.username ? u.username[0].toUpperCase() : "?"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-bold text-white flex items-center gap-2 truncate">
+                          {u.username || "Unknown User"}
+                          {u.isGuest && <span className="text-[7px] border border-primary/40 px-1 py-0.5 text-primary uppercase tracking-tighter rounded font-black bg-primary/5">GUEST</span>}
+                        </div>
+                        <div className="text-[10px] text-white/30 truncate font-mono tracking-tight">{u.email || "No Email Provided"}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {u.roles?.map(r => (
+                        <span key={r} className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border ${
+                          r === 'ADMIN' ? 'text-red-500 border-red-500/20 bg-red-500/10' :
+                          r === 'ORGANIZER' ? 'text-amber-400 border-amber-400/20 bg-amber-400/10' :
+                          'text-white/40 border-white/10 bg-white/5'
+                        }`}>
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end items-center gap-4">
+                      {u.isGuest && (
+                        <button 
+                          onClick={() => onConvert(u)} 
+                          className="text-[10px] font-bold text-primary/60 hover:text-primary uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                        >
+                          Register
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => onEdit(u)} 
+                        className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => onDelete(uid)} 
+                        className="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

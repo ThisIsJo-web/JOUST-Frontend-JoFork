@@ -1,8 +1,7 @@
 "use client";
 import React from "react";
 import FadeIn from "../FadeIn";
-import { BentoGrid, BentoItem } from "../ui/Bento";
-import TournamentList from "../tournaments/TournamentList";
+import TournamentHero, { TournamentHeroContent } from "../tournaments/TournamentHero";
 import ProfileHeader from "../profile/ProfileHeader";
 import MatchHistory from "../profile/MatchHistory";
 import LeaderboardTable from "../leaderboard/LeaderboardTable";
@@ -20,53 +19,58 @@ export default function HomeDashboard({ user, tournaments, leaderboard, stats, h
 
     return (
         <FadeIn>
-            <BentoGrid>
-                {/* Row 1: Full Row Tournament List */}
-                <BentoItem colSpan={4} rowSpan={1}>
-                    <TournamentList 
+            <div className="grid grid-cols-1 lg:grid-cols-[2.25fr_1.75fr] lg:grid-rows-[auto_auto_1fr] gap-6 md:gap-8 items-stretch">
+                {/* HERO: TOP LEFT (Spans 2 rows) */}
+                <div className="lg:col-start-1 lg:row-start-1 lg:row-span-2 flex flex-col min-h-[400px]">
+                    <TournamentHeroContent 
                         tournaments={tournaments} 
-                        variant="bento" 
-                        canManage={canManage}
+                        canManage={canManage} 
+                        currentUserId={user?.id || user?.sub}
                     />
-                </BentoItem>
+                </div>
 
-                {/* Row 2: Profile (2x1) + Rank (1x1) + Points (1x1) */}
-                <BentoItem colSpan={2} rowSpan={1}>
+                {/* PROFILE: TOP RIGHT (Row 1) */}
+                <div className="lg:col-start-2 lg:row-start-1 flex flex-col">
                     <ProfileHeader 
                         user={user} 
                         variant="bento" 
                         isOwnProfile={true}
                         onLogout={handleLogout}
                     />
-                </BentoItem>
-                
-                <BentoItem colSpan={1} rowSpan={1} className="flex flex-col items-center justify-center bg-black p-8 group h-full">
-                    <div className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/40 mb-4 font-poppins w-full text-left">RANK</div>
-                    <div className="text-7xl font-black text-white tracking-tighter group-hover:text-primary transition-colors italic font-poppins">
-                        #{stats?.rank || "--"}
-                    </div>
-                </BentoItem>
+                </div>
 
-                <BentoItem colSpan={1} rowSpan={1} className="flex flex-col items-center justify-center bg-black p-8 group h-full">
-                    <div className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/40 mb-4 font-poppins w-full text-left">POINTS</div>
-                    <div className="text-7xl font-black text-white tracking-tighter group-hover:text-primary transition-colors italic font-poppins">
-                        {stats?.points || "00"}
+                {/* TACTICAL STATS: MIDDLE RIGHT (Row 2) */}
+                <div className="lg:col-start-2 lg:row-start-2 grid grid-cols-2 gap-4">
+                    {/* Rank Card */}
+                    <div className="bg-black border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">RANK</span>
+                        <div className="text-5xl font-black text-white italic group-hover:text-primary transition-colors">#{stats?.rank || "--"}</div>
                     </div>
-                </BentoItem>
+                    {/* Performance Card */}
+                    <div className="bg-black border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">WIN_LOSS</span>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-primary">{stats?.wins || 0}</span>
+                            <span className="text-sm text-white/20 font-black">/</span>
+                            <span className="text-3xl font-black text-white/40">{stats?.losses || 0}</span>
+                        </div>
+                    </div>
+                </div>
 
-                {/* Row 3: Match History (3x2) + Global Leaderboard Preview (1x2) */}
-                <BentoItem colSpan={3} rowSpan={2} className="min-h-[400px]">
+                {/* RECENT ACTIVITY: BOTTOM LEFT (Row 3) */}
+                <div className="lg:col-start-1 lg:row-start-3 flex flex-col min-h-[450px]">
                     <MatchHistory userId={user?.id || user?.sub} />
-                </BentoItem>
+                </div>
 
-                <BentoItem colSpan={1} rowSpan={2} className="p-0 overflow-hidden">
+                {/* LEADERBOARDS: BOTTOM RIGHT (Row 3) */}
+                <div className="lg:col-start-2 lg:row-start-3 flex flex-col min-h-[450px] bg-black border border-white/5 overflow-hidden">
                     <LeaderboardTable 
                         entries={leaderboard} 
                         variant="bento" 
-                        limit={5} 
+                        limit={10} 
                     />
-                </BentoItem>
-            </BentoGrid>
+                </div>
+            </div>
         </FadeIn>
     );
 }

@@ -1,30 +1,69 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Inter } from "next/font/google";
+import { motion, AnimatePresence } from "framer-motion";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 import StatCard from "./components/StatCard";
 import UserRegistry, { AdminUser } from "./components/UserRegistry";
 import TournamentTable, { AdminTournament } from "./components/TournamentTable";
 import UserModal from "./components/UserModal";
 import ConvertGuestModal from "./components/ConvertGuestModal";
-import DevPanel from "./components/DevPanel";
+
+const inter = Inter({ subsets: ["latin"] });
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
+function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
+  return (
+    <nav className="flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mb-8">
+      {items.map((item, i) => (
+        <span key={i} className="flex items-center gap-3">
+          {i > 0 && <span className="text-white/10">/</span>}
+          {item.href ? (
+            <a href={item.href} className="hover:text-primary transition-colors">{item.label}</a>
+          ) : (
+            <span className="text-white/10">{item.label}</span>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
 
 interface Stats {
   totalUsers: number; registeredUsers: number; guestUsers: number;
   totalTournaments: number; activeTournaments: number; completedTournaments: number;
 }
 
+import SystemLogs from "./components/SystemLogs";
+import DevPanel from "./components/DevPanel";
+
 export default function AdminDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"DASHBOARD" | "DEV_TOOLS">("DASHBOARD");
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, registeredUsers: 0, guestUsers: 0, totalTournaments: 0, activeTournaments: 0, completedTournaments: 0 });
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
+  const [latency, setLatency] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Modal State
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null); // null means create mode
+  const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null);
   const [guestToConvert, setGuestToConvert] = useState<AdminUser | null>(null);
 
   useEffect(() => {
@@ -32,6 +71,7 @@ export default function AdminDashboard() {
   }, [router]);
 
   const fetchData = async () => {
+    const startTime = performance.now();
     setIsLoading(true);
     try {
       const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
@@ -49,9 +89,12 @@ export default function AdminDashboard() {
       setUsers(usersData);
       setTournaments(tourneyData);
       updateStats(usersData, tourneyData);
+      
+      const endTime = performance.now();
+      setLatency(Math.round(endTime - startTime));
     } catch (err) {
       console.error("Dashboard error", err);
-      setErrorMsg("Failed to load dashboard data.");
+      setErrorMsg("API_FAILURE: CONNECTION_LOST");
     } finally {
       setIsLoading(false);
     }
@@ -70,20 +113,19 @@ export default function AdminDashboard() {
   };
 
   const handleForceComplete = async (id: string) => {
-    if (!confirm("Force complete this tournament? This cannot be undone.")) return;
+    if (!confirm("Execute terminal force-complete? All active matches will be finalized.")) return;
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.COMPLETE(id), { method: "PATCH" });
     if (res.ok) {
       setTournaments(prev => prev.map(t => t.id === id ? { ...t, status: "COMPLETED" } : t));
       setStats(prev => ({ ...prev, activeTournaments: prev.activeTournaments - 1, completedTournaments: prev.completedTournaments + 1 }));
     } else {
-      alert("Failed to complete tournament.");
+      setErrorMsg("UPDATE_FAILURE: REQUEST_REJECTED");
     }
   };
 
   const handleUserModalSubmit = async (userId: string | null, data: any) => {
     try {
       if (!userId) {
-        // CREATE MODE
         const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ADMIN_CREATE_USER, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -91,10 +133,9 @@ export default function AdminDashboard() {
         });
         if (!res.ok) {
           const errData = await safeJson(res);
-          throw new Error(errData?.message || "User creation failed");
+          throw new Error(errData?.message || "INIT_FAILURE: USER_CREATION_REJECTED");
         }
       } else {
-        // UPDATE MODE
         const profileData = { username: data.username, email: data.email };
         if (data.password) (profileData as any).password = data.password;
 
@@ -112,20 +153,18 @@ export default function AdminDashboard() {
         ]);
 
         if (!profileRes.ok || !rolesRes.ok) {
-          throw new Error("Failed to fully update user profile or roles");
+          throw new Error("SYNC_FAILURE: UPDATE_REJECTED");
         }
       }
       await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      setErrorMsg(err.message);
       throw err;
     }
   };
 
-
-
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Permanently delete this user?")) return;
+    if (!confirm("Permanently delete this user record?")) return;
     try {
       const res = await authenticatedFetch(API_ENDPOINTS.AUTH.DELETE_USER(userId), { method: "DELETE" });
       if (res.ok) {
@@ -134,35 +173,31 @@ export default function AdminDashboard() {
         updateStats(updatedUsers, tournaments);
       } else {
         const data = await safeJson(res);
-        alert(`Deletion failed: ${data?.message || "Unknown error"}`);
+        setErrorMsg(`DELETE_FAILURE: ${data?.message || "REJECTION"}`);
       }
     } catch (err) {
-      alert("Network error.");
+      setErrorMsg("API_ERROR: DELETE_COMMAND_TIMED_OUT");
     }
   };
 
   const handleBatchDelete = async (userIds: string[]) => {
-    if (!confirm(`Permanently delete ${userIds.length} selected users?`)) return;
+    if (!confirm(`Delete ${userIds.length} selected user records?`)) return;
     setIsLoading(true);
     try {
-      // Execute all deletions in parallel
       const results = await Promise.all(
         userIds.map(id => authenticatedFetch(API_ENDPOINTS.AUTH.DELETE_USER(id), { method: "DELETE" }))
       );
-      
       const successCount = results.filter(r => r.ok).length;
       if (successCount < userIds.length) {
-        alert(`Batch cleanup partially failed. ${successCount}/${userIds.length} successful.`);
+        setErrorMsg(`BATCH_FAILURE: ${userIds.length - successCount} USERS REMAIN`);
       }
-      
       await fetchData();
     } catch (err) {
-      alert("Batch operation failed due to network error.");
+      setErrorMsg("BATCH_ERROR: EXECUTION_STOPPED");
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const handleConvertGuest = async (guestId: string, data: any) => {
     try {
@@ -175,91 +210,171 @@ export default function AdminDashboard() {
         await fetchData();
       } else {
         const errData = await safeJson(res);
-        alert(`Conversion failed: ${errData?.message || "Check logs"}`);
+        setErrorMsg(`UPDATE_FAILURE: ${errData?.message || "REJECTION"}`);
       }
     } catch (err) {
-      alert("Network error.");
+      setErrorMsg("API_ERROR: UPDATE_TIMED_OUT");
     }
   };
 
   if (isLoading && users.length === 0) return (
-    <div className="flex flex-col min-h-screen w-full bg-neutral-950 items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-primary font-black uppercase tracking-widest animate-pulse">Loading Admin Dashboard...</p>
+    <div className="min-h-screen w-full bg-[#1B1B1B] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-6">
+        <div className="w-12 h-12 border-4 border-white/5 border-t-primary animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary animate-pulse font-poppins italic">Loading Admin OS</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-foreground font-poppins selection:bg-primary/30 flex flex-col relative overflow-x-hidden">
-      
-      <div className="p-6 md:p-12 max-w-[1600px] mx-auto w-full">
-        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
-          <div>
+    <div className={`min-h-screen bg-[#0A0A0A] text-[#E0E0E0] ${inter.className} flex flex-col p-4 md:p-12 gap-0`}>
+      <div className="max-w-7xl mx-auto w-full flex flex-col">
+        {/* Tactical Folder Tabs */}
+        <div className="flex items-end gap-1 px-4">
+          {/* Brand Tab */}
+          <div className="px-6 py-4 bg-black border-t-2 border-l-2 border-r-2 border-white/10 flex flex-col justify-center min-w-[160px]">
+            <div className="text-white font-black tracking-tighter text-xl font-poppins uppercase leading-none">
+              JOUST<br/>
+              <span className="text-primary text-[8px] tracking-[0.4em] font-bold">ADMIN</span>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          {(["DASHBOARD", "DEV_TOOLS"] as const).map((tab) => (
             <button 
-              onClick={() => router.push("/")}
-              className="group flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 hover:opacity-70 transition-all"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-10 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-t-2 border-l-2 border-r-2 relative z-20 -mb-[2px] ${
+                activeTab === tab 
+                  ? "bg-[#111] border-white/20 text-primary pt-6" 
+                  : "bg-black border-white/5 text-white/30 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7"/></svg>
-              Back to Home
+              {tab.replace("_", " ")}
+              {activeTab === tab && (
+                <div className="absolute -bottom-[2px] left-0 right-0 h-[4px] bg-[#111] z-30" />
+              )}
             </button>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter bg-gradient-to-br from-white to-neutral-500 bg-clip-text text-transparent">
-              Admin <span className="text-primary">Dashboard</span>
-            </h1>
-            <p className="text-neutral-400 mt-2 font-mono text-sm uppercase tracking-widest">System Overview &amp; Control</p>
-          </div>
-        </header>
-
-        {errorMsg && (
-          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/50 flex justify-between items-center">
-            <p className="text-red-500 font-bold uppercase tracking-widest text-sm">{errorMsg}</p>
-            <button onClick={fetchData} className="text-xs font-black uppercase tracking-widest text-red-500 hover:underline">Retry Connection</button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
-          <StatCard title="Total Users"        value={stats.totalUsers}           subtitle={`${stats.registeredUsers} Users / ${stats.guestUsers} Guests`} />
-          <StatCard title="Total Tournaments"  value={stats.totalTournaments} />
-          <StatCard title="Active"             value={stats.activeTournaments}    color="text-amber-400" />
-          <StatCard title="Completed"          value={stats.completedTournaments} color="text-primary" />
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-          <UserRegistry       
-            users={users}             
-            onDelete={handleDeleteUser}
-            onBatchDelete={handleBatchDelete}
-            onConvert={setGuestToConvert}
-            onEdit={(u) => { setUserToEdit(u); setIsUserModalOpen(true); }}
-            onCreateClick={() => { setUserToEdit(null); setIsUserModalOpen(true); }}
-          />
-          <TournamentTable tournaments={tournaments} onForceComplete={handleForceComplete} />
-        </div>
+        {/* Main Folder Body */}
+        <div className="bg-[#111] border-2 border-white/20 shadow-2xl relative z-10 flex flex-col min-h-[80vh]">
+          <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+        <AnimatePresence mode="wait">
+          {activeTab === "DASHBOARD" ? (
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-7xl mx-auto w-full space-y-8 pb-12"
+            >
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
+                <div>
+                  <Breadcrumbs items={[{ label: "ADMIN", href: "/admin" }, { label: "DASHBOARD" }]} />
+                  <h1 className="text-4xl font-black text-white tracking-tight font-poppins uppercase leading-none mt-2">Management Overview</h1>
+                  <p className="text-sm text-white/30 mt-4 max-w-2xl">
+                    High-performance administrative hub for user records, tournament logistics, and real-time audit logs.
+                  </p>
+                </div>
+              </div>
 
-        <div className="mt-12 flex justify-center">
-          <button 
-            onClick={() => router.push("/admin/dev")}
-            className="px-12 py-4 bg-neutral-900 border border-neutral-800 text-neutral-500 hover:text-primary hover:border-primary transition-all text-[10px] font-black uppercase tracking-[0.5em] group"
-          >
-            Access <span className="text-primary group-hover:text-white transition-colors">Dev Terminal</span> 
-          </button>
-        </div>
-      </div>
+              {/* Stats Bento */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="System Users"        value={stats.totalUsers}           subtitle={`${stats.registeredUsers} REG / ${stats.guestUsers} GUEST`} delay={0.1} color="text-primary" />
+                <StatCard title="Total Tournaments"   value={stats.totalTournaments}    subtitle="Historical Volume" delay={0.2} color="text-white" />
+                <StatCard title="Active Instances"     value={stats.activeTournaments}    subtitle="Ongoing Cycles" delay={0.3} color="text-amber-400" />
+                <StatCard title="System Latency"      value={`${latency}ms`}            subtitle="Connection Health" delay={0.4} color={latency < 200 ? "text-primary" : "text-amber-400"} />
+              </div>
 
-      <UserModal 
-        isOpen={isUserModalOpen}
-        user={userToEdit}
-        onClose={() => setIsUserModalOpen(false)}
-        onSubmit={handleUserModalSubmit}
-      />
+              {/* Primary/Secondary Dual Column Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Column 1: Master Management (Wide) */}
+                <div className="lg:col-span-8 space-y-8">
+                  <div className="bg-black border border-white/10 p-1">
+                    <UserRegistry       
+                      users={users}             
+                      onDelete={handleDeleteUser}
+                      onBatchDelete={handleBatchDelete}
+                      onConvert={setGuestToConvert}
+                      onEdit={(u) => { setUserToEdit(u); setIsUserModalOpen(true); }}
+                      onCreateClick={() => { setUserToEdit(null); setIsUserModalOpen(true); }}
+                    />
+                  </div>
+                  
+                  <div className="bg-black border border-white/10 p-1">
+                    <TournamentTable tournaments={tournaments} onForceComplete={handleForceComplete} />
+                  </div>
+                </div>
 
-      <ConvertGuestModal 
-        guest={guestToConvert}
-        isOpen={!!guestToConvert}
-        onClose={() => setGuestToConvert(null)}
-        onSubmit={handleConvertGuest}
-      />
+                {/* Column 2: System Utilities (Narrow) */}
+                <div className="lg:col-span-4 space-y-8">
+                  <div className="bg-black border border-white/10 p-6">
+                    <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-6">System Audit Log</h3>
+                    <SystemLogs />
+                  </div>
+
+                  <div className="bg-black border border-white/10 p-6">
+                    <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-6">External Gateways</h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      <button 
+                        onClick={() => router.push("/tournaments/manage")} 
+                        className="p-4 border border-white/10 hover:border-primary/50 text-[10px] font-bold text-white uppercase tracking-widest transition-all text-left flex justify-between items-center group"
+                      >
+                        Organizer Portal
+                        <svg className="w-4 h-4 text-white/20 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="dev"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-7xl mx-auto w-full pb-12"
+            >
+              <div className="mb-12">
+                <Breadcrumbs items={[{ label: "ADMIN", href: "/admin" }, { label: "DEV_TOOLS" }]} />
+                <h1 className="text-4xl font-black text-white tracking-tight font-poppins uppercase leading-none mt-2">Diagnostic Console</h1>
+                <p className="text-sm text-white/30 mt-4">System-level diagnostic tools for direct database state management.</p>
+              </div>
+              <div className="bg-black border border-white/10 p-1">
+                <DevPanel tournaments={tournaments} onRefresh={fetchData} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
+  </div>
+
+  <UserModal 
+    isOpen={isUserModalOpen}
+    user={userToEdit}
+    onClose={() => setIsUserModalOpen(false)}
+    onSubmit={handleUserModalSubmit}
+  />
+
+  <ConvertGuestModal 
+    guest={guestToConvert}
+    isOpen={!!guestToConvert}
+    onClose={() => setGuestToConvert(null)}
+    onSubmit={handleConvertGuest}
+  />
+
+  <style jsx global>{`
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1a; border: 2px solid #000; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52B946; }
+  `}</style>
+</div>
   );
 }

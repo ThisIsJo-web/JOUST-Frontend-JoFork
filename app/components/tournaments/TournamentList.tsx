@@ -115,11 +115,9 @@ export default function TournamentList({ tournaments, variant = "default", limit
                   <img 
                     src={sorted[currentIndex].image || "/placeholder.jpg"} 
                     alt={sorted[currentIndex].name}
-                    className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 pointer-events-none"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 pointer-events-none"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
                 </m.motion.div>
-                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px]" />
               </div>
 
               {/* Content Side - Static */}

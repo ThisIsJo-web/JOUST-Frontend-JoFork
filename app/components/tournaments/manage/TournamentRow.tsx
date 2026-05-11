@@ -24,11 +24,10 @@ export default function TournamentRow({ tournament: t, onComplete, onCopyLink, o
           <h3 className="text-xl font-black uppercase tracking-tight text-foreground font-poppins">{t.name}</h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">{t.format.replace("_", " ")} · {t.maxPlayers} PLAYERS</p>
-            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
-              t.status === "UPCOMING" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-              t.status === "OPEN"     ? "bg-primary/10 text-primary border border-primary/20" :
-                                        "bg-foreground/10 text-foreground/40 border border-foreground/20"
-            }`}>{t.status}</span>
+            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${t.status === "UPCOMING" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                t.status === "OPEN" ? "bg-primary/10 text-primary border border-primary/20" :
+                  "bg-foreground/10 text-foreground/40 border border-foreground/20"
+              }`}>{t.status}</span>
             {t.status === "UPCOMING" && t.date && (
               <span className="text-[8px] font-black text-blue-400/60 uppercase tracking-widest">
                 Scheduled: {new Date(t.date).toLocaleString()}

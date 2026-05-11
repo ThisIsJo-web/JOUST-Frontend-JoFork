@@ -9,7 +9,7 @@ import HomeDashboard from "../components/home/HomeDashboard";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, refreshUser } = useUser();
+  const { user, loading: userLoading, refreshUser } = useUser();
   const [tournaments, setTournaments] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [stats, setStats] = useState({ wins: 0, losses: 0, rank: 0, points: 0 });
@@ -50,8 +50,10 @@ export default function HomePage() {
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+    } else if (!userLoading) {
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, userLoading]);
 
   const handleLogout = async () => {
     try {
@@ -64,7 +66,7 @@ export default function HomePage() {
     }
   };
 
-  if (!user && !loading) {
+  if (!user && !userLoading) {
     router.push("/auth");
     return null;
   }

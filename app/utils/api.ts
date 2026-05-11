@@ -1,11 +1,15 @@
-export const API_URL = "/api/backend";
+// Prioritize the environment variable if it's an absolute URL, otherwise fallback to the proxy
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+export const API_URL = (envApiUrl && envApiUrl.startsWith('http')) 
+  ? envApiUrl.replace(/\/$/, '') // Remove trailing slash
+  : "/api/backend";
 
 export async function safeJson(res: Response) {
-  const text = await res.text();
   try {
+    const text = await res.text();
     return text ? JSON.parse(text) : null;
   } catch (e) {
-    console.error("JSON Parse Error:", e, "Text content:", text);
+    console.error("JSON Parse Error:", e);
     return null;
   }
 }
@@ -18,7 +22,12 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     headers.set('Authorization', `Bearer ${token}`);
   }
   
-  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  // Build the full URL, handling slashes carefully
+  let fullUrl = url;
+  if (!url.startsWith('http')) {
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    fullUrl = `${API_URL}${cleanPath}`;
+  }
   
   try {
     const response = await fetch(fullUrl, {

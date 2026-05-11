@@ -60,6 +60,7 @@ export default function TournamentPage() {
                 <TournamentHero 
                     tournaments={tournaments} 
                     canManage={user?.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")}
+                    currentUserId={user?.sub || user?.id}
                 />
                 <TournamentDirectory tournaments={tournaments} />
             </div>

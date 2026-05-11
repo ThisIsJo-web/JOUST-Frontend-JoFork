@@ -1,21 +1,45 @@
+import { motion } from "framer-motion";
+
 interface Props {
   title: string;
-  value: number;
+  value: string | number;
   subtitle?: string;
   color?: string;
+  delay?: number;
 }
 
-export default function StatCard({ title, value, subtitle, color = "text-white" }: Props) {
+export default function StatCard({ title, value, subtitle, color = "text-white", delay = 0 }: Props) {
   return (
-    <div className="bg-neutral-900 border border-neutral-800 p-6 flex flex-col justify-between relative overflow-hidden group">
-      <div className="absolute -inset-1 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-      <h3 className="text-neutral-500 font-mono text-xs uppercase tracking-widest mb-4">{title}</h3>
-      <div className="flex items-end gap-3">
-        <span className={`text-5xl md:text-6xl font-black tracking-tighter ${color}`}>{value}</span>
-        {subtitle && <span className="text-xs text-neutral-500 font-mono pb-2 uppercase">{subtitle}</span>}
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ y: -2 }}
+      className="bg-black border border-white/10 p-6 flex flex-col justify-between h-36 relative transition-all duration-300 group hover:border-white/20"
+    >
+      {/* Linear Glow Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="flex items-center justify-between relative z-10">
+        <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] leading-none">
+          {title}
+        </h3>
+        <div className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} opacity-50 group-hover:opacity-100 transition-opacity shadow-[0_0_8px_rgba(82,185,70,0.5)]`}></div>
       </div>
-      <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neutral-600/50" />
-      <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neutral-600/50" />
-    </div>
+      
+      <div className="relative z-10">
+        <div className={`text-5xl font-black tracking-tight ${color} leading-none mb-2 font-poppins`}>
+          {value}
+        </div>
+        {subtitle && (
+          <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] font-bold border-t border-white/5 pt-2 inline-block">
+            {subtitle}
+          </p>
+        )}
+      </div>
+
+      {/* Decorative Border Glow Line */}
+      <div className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:w-full transition-all duration-700" />
+    </motion.div>
   );
 }

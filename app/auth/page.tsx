@@ -5,12 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { API_ENDPOINTS, API_URL } from "../utils/api";
+import { API_ENDPOINTS, API_URL, safeJson } from "../utils/api";
 import FadeIn, { StaggerContainer } from "../components/FadeIn";
 import Footer from "../components/Footer";
 
+import { useUser } from "../components/UserProvider";
+
 export default function AuthPage() {
   const router = useRouter();
+  const { refreshUser } = useUser();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -30,16 +33,21 @@ export default function AuthPage() {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await response.json();
+      const data = await safeJson(response);
 
       if (response.ok) {
         setMessage(`Success: ${mode === "login" ? "Signed in" : "Signed up"}`);
-        if (data.token) localStorage.setItem("token", data.token);
-        setTimeout(() => router.push("/home"), 1000);
+        if (data?.token) {
+          localStorage.setItem("token", data.token);
+          // Update global auth state before redirecting
+          await refreshUser();
+        }
+        setTimeout(() => router.push("/home"), 800);
       } else {
-        setMessage(`Error: ${data.message || "Something went wrong"}`);
+        setMessage(`Error: ${data?.message || "Authentication failed"}`);
       }
     } catch (error) {
+      console.error("Auth error:", error);
       setMessage("Error: Failed to connect to server");
     }
   };

@@ -61,7 +61,7 @@ export default function MobileBottomNav() {
   // Logic for specialized tabs
   const tabs = [...allTabs];
   
-  // Add Manage tab for authorized personnel only
+  // Add Manage tab for authorized personnel
   if (user?.roles?.some((r: string) => r === "ADMIN" || r === "ORGANIZER")) {
     tabs.push({
       name: "Manage",
@@ -71,6 +71,21 @@ export default function MobileBottomNav() {
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           <path d="M9 3v18" />
           <path d="m14 9 3 3-3 3" />
+        </svg>
+      )
+    });
+  }
+
+  // Add Admin tab for administrators only
+  if (user?.roles?.includes("ADMIN")) {
+    tabs.push({
+      name: "System",
+      href: "/admin",
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
         </svg>
       )
     });

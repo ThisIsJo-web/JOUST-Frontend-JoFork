@@ -1,9 +1,12 @@
+import { TournamentStatus } from "../../../tournaments/types";
+
 export interface AdminTournament {
   id: string;
   name: string;
-  status: string;
-  date: string;
-  format: string;
+  status: TournamentStatus;
+  maxPlayers: number;
+  participants: any[];
+  createdAt: string;
 }
 
 interface Props {
@@ -13,47 +16,76 @@ interface Props {
 
 export default function TournamentTable({ tournaments, onForceComplete }: Props) {
   return (
-    <section className="bg-neutral-900 border border-neutral-800 rounded-none overflow-hidden relative group">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="p-6 border-b border-neutral-800 bg-neutral-950/50">
-        <h2 className="text-2xl font-black uppercase tracking-widest flex items-center gap-3">
-          <span className="w-2 h-8 bg-amber-400 block" />
-          Operations Log
-        </h2>
+    <div className="bg-black border border-white/5 rounded-sm overflow-hidden flex flex-col h-full min-h-[400px]">
+      <div className="p-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+        <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/80">Tournament Operations</h2>
+        <span className="text-[10px] text-white/20 font-mono">{tournaments.length} Records</span>
       </div>
-      <div className="p-0 max-h-[600px] overflow-y-auto custom-scrollbar">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-neutral-950 text-neutral-400 font-mono text-xs uppercase tracking-widest sticky top-0 z-10 border-b border-neutral-800">
+      
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-black border-b border-white/10 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-4">Designation</th>
-              <th className="px-6 py-4">State</th>
-              <th className="px-6 py-4 text-right">Override</th>
+              <th className="px-4 py-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">Identity / Name</th>
+              <th className="px-4 py-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">Status</th>
+              <th className="px-4 py-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">Players</th>
+              <th className="px-4 py-3 text-[10px] font-bold text-white/40 uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-800/50">
-            {tournaments.map(t => (
-              <tr key={t.id} className="hover:bg-neutral-800/30 transition-colors group/row">
-                <td className="px-6 py-4 font-bold">{t.name}</td>
-                <td className="px-6 py-4">
-                  <span className={`text-[10px] px-2 py-0.5 uppercase tracking-widest font-black ${
-                    t.status === 'COMPLETED' ? 'text-primary bg-primary/10' :
-                    t.status === 'ONGOING'   ? 'text-amber-400 bg-amber-400/10 animate-pulse' :
-                    t.status === 'OPEN'      ? 'text-green-400 bg-green-400/10' :
-                                               'text-neutral-400 bg-neutral-800'
-                  }`}>{t.status}</span>
+          <tbody className="divide-y divide-white/5">
+            {tournaments.map((t) => (
+              <tr key={t.id} className="group hover:bg-white/[0.02] transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-medium text-white">{t.name}</span>
+                    <span className="text-[9px] text-white/20 font-mono uppercase tracking-tighter">{t.id.slice(0, 8)}...</span>
+                  </div>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 py-3">
+                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm border ${
+                    t.status === 'COMPLETED' ? 'text-primary border-primary/20 bg-primary/5' :
+                    t.status === 'ONGOING'   ? 'text-amber-400 border-amber-400/20 bg-amber-400/5 animate-pulse' :
+                    t.status === 'OPEN'      ? 'text-green-400 border-green-400/20 bg-green-400/5' :
+                                               'text-white/20 border-white/5 bg-white/5'
+                  }`}>
+                    {t.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary/40" 
+                        style={{ width: `${Math.min(100, (t.participants?.length || 0) / t.maxPlayers * 100)}%` }} 
+                      />
+                    </div>
+                    <span className="text-[10px] text-white/40 font-mono">
+                      {t.participants?.length || 0}/{t.maxPlayers}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
                   {t.status !== 'COMPLETED' && (
-                    <button onClick={() => onForceComplete(t.id)} className="opacity-0 group-hover/row:opacity-100 transition-opacity text-xs font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-neutral-950 border border-primary/50 px-3 py-1">
+                    <button 
+                      onClick={() => onForceComplete(t.id)} 
+                      className="opacity-0 group-hover:opacity-100 transition-all text-[10px] font-bold uppercase tracking-widest text-primary hover:text-white hover:bg-primary/20 border border-primary/30 px-3 py-1 rounded-sm"
+                    >
                       Force Complete
                     </button>
                   )}
                 </td>
               </tr>
             ))}
+            {tournaments.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-20 text-center text-[10px] text-white/20 uppercase tracking-widest italic">
+                  No active tournament records found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }
