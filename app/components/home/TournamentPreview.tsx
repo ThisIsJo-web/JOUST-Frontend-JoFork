@@ -1,14 +1,53 @@
 "use client";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Tournament } from "../../tournaments/types";
 import HomeFrame from "./HomeFrame";
+import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 
 interface TournamentPreviewProps {
   tournaments: Tournament[];
 }
 
 export default function TournamentPreview({ tournaments = [] }: TournamentPreviewProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
+        if (res.ok) {
+          const data = await safeJson(res);
+          setUserId(data?.sub || data?.id);
+        }
+      } catch (e) {
+        console.error("Preview user fetch failed:", e);
+      }
+    };
+    fetchMe();
+  }, []);
+
+  const sorted = useMemo(() => {
+    return [...tournaments].sort((a, b) => {
+      const aJoined = a.participants?.some(p => p.userId === userId);
+      const bJoined = b.participants?.some(p => p.userId === userId);
+
+      // 1. Prioritize Joined
+      if (aJoined && !bJoined) return -1;
+      if (!aJoined && bJoined) return 1;
+
+      // 2. Prioritize OPEN status
+      if (a.status === "OPEN" && b.status !== "OPEN") return -1;
+      if (a.status !== "OPEN" && b.status === "OPEN") return 1;
+
+      // 3. Sort by Date
+      const dateA = a.date ? new Date(a.date).getTime() : Infinity;
+      const dateB = b.date ? new Date(b.date).getTime() : Infinity;
+      return dateA - dateB;
+    });
+  }, [tournaments, userId]);
+
   if (tournaments.length === 0) {
     return (
       <HomeFrame className="py-40">
@@ -23,14 +62,6 @@ export default function TournamentPreview({ tournaments = [] }: TournamentPrevie
       </HomeFrame>
     );
   }
-
-  const sorted = [...tournaments].sort((a, b) => {
-    if (a.status === "OPEN" && b.status !== "OPEN") return -1;
-    if (a.status !== "OPEN" && b.status === "OPEN") return 1;
-    const dateA = a.date ? new Date(a.date).getTime() : Infinity;
-    const dateB = b.date ? new Date(b.date).getTime() : Infinity;
-    return dateA - dateB;
-  });
 
   const featured = sorted[0];
   const others = sorted.slice(1, 4);

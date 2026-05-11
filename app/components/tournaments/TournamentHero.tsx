@@ -103,6 +103,7 @@ export function TournamentHeroContent({ tournaments, canManage, currentUserId: i
             tournaments={prioritizedTournaments} 
             variant="bento" 
             canManage={canManage}
+            currentUserId={userId}
         />
     );
 }

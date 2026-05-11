@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { Inter } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
-import StatCard from "./components/StatCard";
-import UserRegistry, { AdminUser } from "./components/UserRegistry";
-import TournamentTable, { AdminTournament } from "./components/TournamentTable";
-import UserModal from "./components/UserModal";
-import ConvertGuestModal from "./components/ConvertGuestModal";
+import StatCard from "../components/admin/StatCard";
+import UserRegistry, { AdminUser } from "../components/admin/UserRegistry";
+import TournamentTable, { AdminTournament } from "../components/admin/TournamentTable";
+import UserModal from "../components/admin/UserModal";
+import ConvertGuestModal from "../components/admin/ConvertGuestModal";
+import SystemLogs from "../components/admin/SystemLogs";
+import DevPanel from "../components/admin/DevPanel";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,11 +51,10 @@ interface Stats {
   totalTournaments: number; activeTournaments: number; completedTournaments: number;
 }
 
-import SystemLogs from "./components/SystemLogs";
-import DevPanel from "./components/DevPanel";
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"DASHBOARD" | "DEV_TOOLS">("DASHBOARD");
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, registeredUsers: 0, guestUsers: 0, totalTournaments: 0, activeTournaments: 0, completedTournaments: 0 });
@@ -67,17 +68,27 @@ export default function AdminDashboard() {
   const [guestToConvert, setGuestToConvert] = useState<AdminUser | null>(null);
 
   useEffect(() => {
-    fetchData();
-  }, [router]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) fetchData();
+  }, [mounted, router]);
 
   const fetchData = async () => {
     const startTime = performance.now();
     setIsLoading(true);
     try {
       const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
-      if (!meRes.ok) { router.push("/auth"); return; }
+      if (!meRes.ok) { 
+        if (mounted) router.push("/auth"); 
+        return; 
+      }
       const me = await safeJson(meRes);
-      if (!me?.roles?.includes("ADMIN")) { router.push("/"); return; }
+      if (!me?.roles?.includes("ADMIN")) { 
+        if (mounted) router.push("/"); 
+        return; 
+      }
 
       const [usersRes, tourneyRes] = await Promise.all([
         authenticatedFetch(API_ENDPOINTS.AUTH.USERS),

@@ -6,6 +6,7 @@ import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 import { Tournament } from "../types";
 import Image from "next/image";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 function TournamentViewContent() {
   const router = useRouter();
@@ -62,7 +63,7 @@ function TournamentViewContent() {
         body: JSON.stringify({ userId: (user as any).id || (user as any).sub }),
       });
       if (res.ok) {
-        fetchData();
+        router.push(`/tournaments/${tournamentId}/lobby`);
       } else {
         const err = await safeJson(res) || { message: "Join failed" };
         alert(err.message || "Join failed");
@@ -111,118 +112,295 @@ function TournamentViewContent() {
   const registrationOpen = tournament.status === "OPEN" || tournament.status === "UPCOMING";
   const canJoin = registrationOpen && !isJoined && !isFull && !!user;
 
+  const formatExplanations: Record<string, string> = {
+    SINGLE_ELIMINATION: "Loss results in immediate disqualification. High-stakes, high-precision combat.",
+    DOUBLE_ELIMINATION: "Features a secondary bracket for losers. Two losses required for elimination.",
+    SWISS: "Fixed number of rounds. Matches players with similar records. No one is eliminated early.",
+    ROUND_ROBIN: "Every participant plays every other participant. Final ranking based on overall record."
+  };
+
   return (
-    <div className="min-h-screen w-full bg-background font-questrial overflow-x-hidden">
-      
-      <div className="w-full px-4 md:px-12 py-12 max-w-[1600px] mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left: Tournament Identity */}
-            <div className="lg:col-span-8 space-y-12">
-                <div className="relative h-[400px] md:h-[600px] rounded-[3rem] overflow-hidden group">
-                    <Image 
-                        src={tournament.image || "/placeholder.jpg"} 
-                        alt={tournament.name} 
-                        fill 
-                        className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-12 left-12 right-12">
-                        <span className="inline-block px-4 py-1.5 text-[10px] font-black tracking-[0.3em] text-white uppercase rounded-md bg-primary font-poppins mb-6">
-                            {tournament.status} Event
-                        </span>
-                        <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white font-poppins leading-[0.8] mb-8">{tournament.name}</h1>
+    <div className="min-h-screen bg-[#1B1B1B] text-white font-poppins selection:bg-primary selection:text-black overflow-x-hidden">
+      <main className="max-w-7xl mx-auto px-6 py-16 md:py-32 flex flex-col gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+          {/* LEFT COLUMN: VISUAL & NARRATIVE */}
+          <div className="lg:col-span-7 flex flex-col gap-12">
+            {/* Picture Module with Format Overlay */}
+            <div className="relative group border-2 border-white/5 overflow-hidden">
+              <div className="aspect-video relative overflow-hidden">
+                <Image 
+                  src={tournament.image || "/placeholder.jpg"} 
+                  alt={tournament.name} 
+                  fill 
+                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                />
+              </div>
+              
+              {/* Format Tag & Explanation */}
+              <div className="absolute top-6 left-6 flex flex-col items-start gap-4 z-20">
+                <div className="relative">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }}
+                    className="px-4 py-2 bg-primary text-black font-black text-[10px] uppercase tracking-[0.4em] italic shadow-2xl cursor-help peer"
+                  >
+                    {tournament.format.replace("_", " ")}
+                  </motion.div>
+                  
+                  {/* Hover Explanation anchored to the tag */}
+                  <div className="absolute top-full left-0 mt-4 opacity-0 peer-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
+                    <div className="bg-black/90 backdrop-blur-md p-6 border border-primary/40 w-64 shadow-[0_0_40px_rgba(82,185,70,0.2)]">
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 italic">Format_Protocol</p>
+                      <p className="text-[11px] text-white/80 leading-relaxed font-light italic">
+                        {formatExplanations[tournament.format] || "Standard tournament protocol."}
+                      </p>
                     </div>
+                  </div>
                 </div>
-
-                <div className="space-y-8">
-                    <div className="flex items-center gap-6">
-                        <h2 className="text-2xl font-black uppercase tracking-tight text-foreground font-poppins">Event Intelligence</h2>
-                        <div className="h-[1px] flex-1 bg-foreground/10"></div>
-                    </div>
-                    <p className="text-xl text-foreground/60 leading-relaxed font-questrial max-w-3xl">
-                        {tournament.description || "The arena is set for an epic showdown. Join combatants from across the sector in this high-stakes tournament. Strategic coordination and precision are required for victory."}
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <SpecBox label="Combat Format" value={tournament.format.replace("_", " ")} color="text-primary" />
-                    <SpecBox label="Prize Pool" value={`₱${tournament.prizePool?.toLocaleString() || "0"}`} color="text-primary" />
-                    <SpecBox label="Max Capacity" value={`${tournament.maxPlayers} Players`} color="text-primary" />
-                    {tournament.date && (
-                        <SpecBox 
-                            label="Schedule" 
-                            value={new Date(tournament.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} 
-                            color="text-primary" 
-                        />
-                    )}
-                </div>
+              </div>
             </div>
 
-            {/* Right: Actions & Roster */}
-            <div className="lg:col-span-4 space-y-8">
-                {/* Participation Card */}
-                <div className="bg-foreground/5 border border-foreground/5 p-10 rounded-[2.5rem] space-y-8">
-                    {canJoin ? (
-                        <button 
-                            onClick={handleJoin}
-                            disabled={joining}
-                            className="w-full py-6 bg-primary text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins"
-                        >
-                            {joining ? "JOINING..." : "JOIN TOURNAMENT"}
-                        </button>
-                    ) : (
-                        <div className="w-full py-6 bg-foreground/10 text-foreground/40 text-center font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl font-poppins">
-                            {isJoined ? "YOU HAVE JOINED" : isFull ? "TOURNAMENT FULL" : `STATUS: ${tournament.status}`}
-                        </div>
-                    )}
-
-                    <Link 
-                        href={`/tournaments/${tournamentId}/bracket`}
-                        className="w-full flex items-center justify-center py-6 border border-foreground/10 text-foreground font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:bg-foreground hover:text-background transition-all font-poppins"
-                    >
-                        VIEW BRACKETS
-                    </Link>
+            {/* Narrative Area with Heavily Stylized Title */}
+            <div className="space-y-6">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4">
+                  <div className="h-[2px] w-12 bg-primary" />
+                  <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.6em]">Briefing_001</span>
                 </div>
-
-                {/* Live Roster */}
-                <div className="bg-foreground/5 border border-foreground/5 p-10 rounded-[2.5rem] space-y-8">
-                    <div className="flex justify-between items-center border-b border-foreground/10 pb-4">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground font-poppins">Live Roster</h3>
-                        <span className="text-[10px] font-black text-primary font-poppins">{tournament.participants.length} / {tournament.maxPlayers}</span>
-                    </div>
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
-                        {tournament.participants.map((p, idx) => (
-                            <div key={p.id} className="flex items-center gap-4 group">
-                                <span className="text-primary font-black text-[10px] font-poppins opacity-40 group-hover:opacity-100 transition-opacity">{(idx + 1).toString().padStart(2, '0')}</span>
-                                <span className="text-sm font-black text-foreground uppercase tracking-tight font-poppins">{p.user.username}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <motion.h1 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter leading-none"
+                >
+                  {tournament.name}
+                </motion.h1>
+              </div>
+              <p className="text-xl md:text-2xl text-white/60 leading-relaxed font-light italic">
+                {tournament.description || "Join the sector's elite in this high-stakes engagement. Success requires absolute precision and strategic dominance."}
+              </p>
             </div>
+          </div>
+
+          {/* RIGHT COLUMN: OPERATIONS */}
+          <div className="lg:col-span-5 flex flex-col gap-8">
+            {/* TOP: JOIN ACTION */}
+            <div className="h-48">
+              {canJoin ? (
+                <motion.button 
+                  onClick={handleJoin}
+                  disabled={joining}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-full border-2 border-primary bg-primary/5 text-primary font-black text-sm uppercase tracking-[0.6em] transition-all hover:bg-primary hover:text-black hover:shadow-[0_0_50px_rgba(82,185,70,0.3)] flex items-center justify-center group relative overflow-hidden"
+                >
+                  <span className="relative z-10">{joining ? "INITIALIZING..." : "JOIN_TOURNAMENT"}</span>
+                  <div className="absolute inset-0 bg-primary/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                </motion.button>
+              ) : isJoined ? (
+                <Link 
+                  href={`/tournaments/${tournamentId}/lobby`}
+                  className="w-full h-full bg-white text-black text-center font-black text-sm uppercase tracking-[0.6em] hover:bg-primary transition-all shadow-xl flex items-center justify-center italic"
+                >
+                  ENTER_LOBBY
+                </Link>
+              ) : (
+                <div className="w-full h-full border-2 border-white/5 bg-white/[0.02] text-white/20 text-center font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center">
+                  REGISTRATION_CLOSED
+                </div>
+              )}
+            </div>
+
+            {/* MIDDLE: STATUS MODULE (2s Expansion + Cycling) */}
+            <ExpansionModule 
+              label="Tournament Status"
+              status={tournament.status}
+              data={[
+                { label: "Status", value: tournament.status },
+                { label: "Enrolled", value: `${tournament.participants.length} / ${tournament.maxPlayers}` }
+              ]}
+            />
+
+            {/* BOTTOM: SPECS MODULE (2s Expansion + Cycling) */}
+            <ExpansionModule 
+              label="Event Logistics"
+              status={tournament.status}
+              data={[
+                { label: "Date", value: tournament.date ? new Date(tournament.date).toLocaleDateString() : "TBD" },
+                { label: "Prize Pool", value: `₱${tournament.prizePool?.toLocaleString() || "0"}` },
+                { label: "Venue", value: tournament.venue || "Global Stadium" }
+              ]}
+            />
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-function SpecBox({ label, value, color }: { label: string, value: string, color: string }) {
-    return (
-        <div className="p-8 bg-foreground/5 border border-foreground/5 rounded-3xl space-y-2">
-            <p className="text-[10px] font-black text-foreground/30 uppercase tracking-widest font-poppins">{label}</p>
-            <p className={`text-xl font-black uppercase tracking-tighter font-poppins ${color}`}>{value}</p>
+function ExpansionModule({ label, data }: { label: string, data: { label: string, value: string }[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Expansion Sync Timer
+  useEffect(() => {
+    let interval: any;
+    if (isHovered && !isExpanded) {
+      interval = setInterval(() => {
+        setSyncProgress(prev => {
+          if (prev >= 100) {
+            setIsExpanded(true);
+            return 100;
+          }
+          return prev + 2; 
+        });
+      }, 20);
+    } else if (!isHovered && !isExpanded) {
+      setSyncProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isHovered, isExpanded]);
+
+  // Immediate Recoil on Mouse Exit
+  useEffect(() => {
+    if (!isHovered && isExpanded) {
+      // Small delay only for mobile feel? User said "as soon as i stop" so let's be snappy
+      setIsExpanded(false);
+      setSyncProgress(0);
+    }
+  }, [isHovered, isExpanded]);
+
+  // Cycling Logic
+  useEffect(() => {
+    let cycleInterval: any;
+    if (!isExpanded) {
+      cycleInterval = setInterval(() => {
+        setActiveIndex(prev => (prev + 1) % data.length);
+      }, 3000);
+    }
+    return () => clearInterval(cycleInterval);
+  }, [isExpanded, data.length]);
+
+  return (
+    <motion.div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => {
+        // Toggle only for mobile/touch (where hover is simulation)
+        // Check if it's a touch device or just allow toggle as a backup
+        setIsExpanded(!isExpanded);
+      }}
+      layout
+      className={`p-8 border-2 transition-all duration-500 cursor-pointer relative overflow-hidden min-h-[160px] flex flex-col justify-center ${
+        isExpanded ? "border-primary bg-primary/10" : "border-white/5 bg-white/[0.02] hover:border-white/20"
+      }`}
+    >
+      {/* 1. Expansion Sync Bar (Top) */}
+      {!isExpanded && isHovered && (
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${syncProgress}%` }}
+          className="absolute top-0 left-0 h-1 bg-primary shadow-[0_0_15px_rgba(82,185,70,0.5)] z-40" 
+        />
+      )}
+
+      {/* 2. Tactical Pagination (Bottom) - Dots to Dashes */}
+      {!isExpanded && (
+        <div className="absolute bottom-6 left-8 flex items-center gap-2 z-20">
+          {data.map((_, i) => (
+            <motion.div 
+              key={i}
+              animate={{ 
+                width: i === activeIndex ? 24 : 4,
+                backgroundColor: i === activeIndex ? "rgba(82, 185, 70, 1)" : "rgba(255, 255, 255, 0.1)"
+              }}
+              className="h-1 rounded-full transition-all duration-500"
+            />
+          ))}
         </div>
-    );
+      )}
+
+      <div className="relative z-10 flex flex-col gap-4">
+        <div className="flex justify-between items-baseline mb-2">
+          <span className={`text-[10px] font-black uppercase tracking-[0.3em] transition-colors ${isExpanded ? "text-primary" : "text-white/20"}`}>
+            {label}
+          </span>
+          <AnimatePresence mode="wait">
+            {!isExpanded ? (
+              <motion.span 
+                key="rotation"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-[8px] font-black text-white/10 uppercase tracking-widest italic"
+              >
+                {isHovered ? "Syncing..." : "Automatic Rotation"}
+              </motion.span>
+            ) : (
+              <motion.span 
+                key="live"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-[8px] font-black text-primary uppercase tracking-widest italic flex items-center gap-2"
+              >
+                <div className="w-1 h-1 bg-primary rounded-full animate-ping" />
+                Live_Data
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            {isExpanded ? (
+              <motion.div 
+                key="expanded"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`grid gap-8 ${data.length > 2 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-2"}`}
+              >
+                {data.map((item, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">{item.label}</span>
+                    <span className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter italic">
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key={activeIndex}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="flex flex-col gap-1"
+              >
+                <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{data[activeIndex].label}</span>
+                <span className="text-3xl font-black text-white/80 uppercase tracking-tighter italic">
+                  {data[activeIndex].value}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 export default function TournamentViewPage() {
   return (
     <Suspense fallback={
-        <div className="min-h-screen w-full bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins">Entering Terminal</p>
-            </div>
-        </div>
+      <div className="min-h-screen bg-[#1B1B1B] flex items-center justify-center">
+        <motion.div 
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="text-[10px] font-black text-primary uppercase tracking-[1em]"
+        >
+          Loading
+        </motion.div>
+      </div>
     }>
       <TournamentViewContent />
     </Suspense>
