@@ -102,6 +102,7 @@ export const API_ENDPOINTS = {
   PRESETS: {
     BASE: '/tournament-formats',
     DETAILS: (id: string) => `/tournament-formats/${id}`,
+    DELETE: (id: string) => `/tournament-formats/${id}`,
   },
   MATCHES: {
     SUBMIT: (id: string) => `/matches/${id}/submit`,
