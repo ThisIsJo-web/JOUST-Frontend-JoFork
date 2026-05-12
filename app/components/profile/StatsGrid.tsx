@@ -24,7 +24,7 @@ interface StatsGridProps {
 export default function StatsGrid({ stats, variant = "default" }: StatsGridProps) {
   if (!stats) {
     const emptyState = (
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-12 min-h-[300px] bg-black border-2 border-white/5 relative overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-12 min-h-[300px] bg-[#1B1B1B] border-2 border-white/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_2px_2px,rgba(var(--color-primary),0.02)_1px,transparent_0)] bg-[size:16px_16px] pointer-events-none" />
         <svg className="w-16 h-16 text-primary/10 mb-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -68,7 +68,7 @@ export default function StatsGrid({ stats, variant = "default" }: StatsGridProps
   );
 
   return variant === "bento" ? (
-    <div className="h-full bg-black">
+    <div className="h-full bg-[#1B1B1B]">
       {grid}
     </div>
   ) : grid;

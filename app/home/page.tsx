@@ -10,9 +10,9 @@ import HomeDashboard from "../components/home/HomeDashboard";
 export default function HomePage() {
   const router = useRouter();
   const { user, loading: userLoading, refreshUser } = useUser();
-  const [tournaments, setTournaments] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [stats, setStats] = useState({ wins: 0, losses: 0, rank: 0, points: 0 });
+  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ wins: 0, losses: 0, rank: 0, points: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
@@ -66,8 +66,13 @@ export default function HomePage() {
     }
   };
 
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/auth");
+    }
+  }, [user, userLoading, router]);
+
   if (!user && !userLoading) {
-    router.push("/auth");
     return null;
   }
 
@@ -76,10 +81,10 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         {loading ? (
           <div className="grid grid-cols-4 gap-6 animate-pulse">
-            <div className="col-span-4 h-64 bg-black border-4 border-white/10" />
-            <div className="col-span-2 h-48 bg-black border-4 border-white/10" />
-            <div className="col-span-1 h-48 bg-black border-4 border-white/10" />
-            <div className="col-span-1 h-48 bg-black border-4 border-white/10" />
+            <div className="col-span-4 h-64 bg-[#1B1B1B] border-4 border-white/10" />
+            <div className="col-span-2 h-48 bg-[#1B1B1B] border-4 border-white/10" />
+            <div className="col-span-1 h-48 bg-[#1B1B1B] border-4 border-white/10" />
+            <div className="col-span-1 h-48 bg-[#1B1B1B] border-4 border-white/10" />
           </div>
         ) : (
           <HomeDashboard 

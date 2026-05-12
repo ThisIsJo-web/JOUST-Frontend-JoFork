@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Match, LeaderboardEntry } from "../types";
-import DesktopElimination from "./desktop/DesktopElimination";
+import EliminationLayout from "../Formats/EliminationLayout";
 import DesktopRoundTable from "./desktop/DesktopRoundTable";
 
 interface DesktopViewProps {
@@ -12,6 +12,7 @@ interface DesktopViewProps {
     updating: string | null;
     onOpenScoring: (match: Match, pos?: {x: number, y: number}) => void;
     addLog: (action: string, details?: string) => void;
+    viewMode: "CARD" | "BRACKET";
 }
 
 export default function DesktopView({
@@ -20,14 +21,16 @@ export default function DesktopView({
     isAdmin,
     updating,
     onOpenScoring,
-    addLog
+    addLog,
+    viewMode
 }: DesktopViewProps) {
-    const isElimination = tournament?.format === "SINGLE_ELIMINATION" || tournament?.format === "DOUBLE_ELIMINATION";
+    const fs = tournament?.format?.system;
+    const isElimination = fs === "SINGLE_ELIMINATION" || fs === "DOUBLE_ELIMINATION" || fs === "HYBRID";
 
     return (
         <div className="h-full w-full">
-            {isElimination ? (
-                <DesktopElimination 
+            {isElimination && viewMode === "BRACKET" ? (
+                <EliminationLayout 
                     tournament={tournament}
                     leaderboard={leaderboard}
                     isAdmin={isAdmin}

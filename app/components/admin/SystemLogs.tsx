@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 
 interface LogEntry {
@@ -74,7 +74,7 @@ export default function SystemLogs() {
   };
 
   return (
-    <div className="bg-black border-2 border-white/10 h-[400px] flex flex-col overflow-hidden relative">
+    <div className="bg-[#1B1B1B] border-2 border-white/10 h-[400px] flex flex-col overflow-hidden relative">
       {/* Industrial Header */}
       <div className="p-4 border-b-2 border-white/10 bg-white/[0.02] flex justify-between items-center">
         <h2 className="text-[10px] font-black text-white uppercase tracking-[0.4em] flex items-center gap-3">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
 import { Tournament } from "../../types";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 function TournamentLobbyContent() {
   const router = useRouter();
@@ -126,7 +126,7 @@ function TournamentLobbyContent() {
                  {tournament.status}
                </div>
                <div className="px-4 py-1.5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest">
-                 {tournament.format.replace("_", " ")}
+                 {tournament.format?.system?.replace("_", " ") || "UNKNOWN"}
                </div>
                <div className="px-4 py-1.5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest">
                  PARTICIPANTS: {tournament.participants.length} / {tournament.maxPlayers}
@@ -144,7 +144,7 @@ function TournamentLobbyContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="relative p-10 bg-black/40 border border-white/5 group"
+              className="relative p-10 bg-[#1B1B1B]/40 border border-white/5 group"
             >
               {/* Corner Accents */}
               <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary" />
@@ -206,7 +206,7 @@ function TournamentLobbyContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-black/20 border border-white/5 p-8"
+              className="bg-[#1B1B1B]/20 border border-white/5 p-8"
             >
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
                  <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">PARTICIPANT_ROSTER</h2>

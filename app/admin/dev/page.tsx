@@ -2,12 +2,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch, safeJson, API_ENDPOINTS } from "../../utils/api";
-import DevPanel from "../components/DevPanel";
+import DevPanel from "../../components/admin/DevPanel";
 
 export default function DevPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -19,8 +20,14 @@ export default function DevPage() {
       const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
       if (!res.ok) { router.push("/auth"); return; }
       const me = await safeJson(res);
-      if (!me?.roles?.includes("ADMIN")) { router.push("/"); return; }
+      if (!me?.roles?.includes("ADMIN")) { 
+        setIsAuthorized(false);
+        router.push("/"); 
+        return; 
+      }
+      setIsAuthorized(true);
     } catch (e) {
+      setIsAuthorized(false);
       router.push("/");
     }
   };
@@ -38,7 +45,9 @@ export default function DevPage() {
     }
   };
 
-  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-primary font-black uppercase tracking-widest animate-pulse">Loading Developer Panel...</div>;
+  if (isAuthorized === false) return null;
+
+  if (isLoading || isAuthorized === null) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-primary font-black uppercase tracking-widest animate-pulse">Initializing Secure Session...</div>;
 
   return (
     <div className="min-h-screen bg-neutral-950 text-foreground p-8 md:p-12">

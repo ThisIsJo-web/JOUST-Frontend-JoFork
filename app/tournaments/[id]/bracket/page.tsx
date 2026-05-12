@@ -34,6 +34,7 @@ function BracketViewContent() {
   const [scoringMatch, setScoringMatch]       = useState<Match | null>(null);
   const [maximizedPanel, setMaximizedPanel]   = useState<"TERMINAL" | "STANDINGS" | null>(null);
   const [isMobile, setIsMobile]               = useState(false);
+  const [viewMode, setViewMode]               = useState<"CARD" | "BRACKET">("BRACKET");
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -69,6 +70,12 @@ function BracketViewContent() {
         const t = await safeJson(tRes);
         setTournament(t);
         addLog("TOURNAMENT DATA READY", `${t.name.toUpperCase()} STATUS: ${t.status}`);
+        
+        // Auto-switch to CARD view for Swiss/Round Robin
+        const formatSystem = typeof t.format === 'string' ? t.format : t.format?.system;
+        if (formatSystem === "SWISS" || formatSystem === "ROUND_ROBIN") {
+          setViewMode("CARD");
+        }
       }
       const lRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.LEADERBOARD(tournamentId!));
       if (lRes.ok) setLeaderboard(await safeJson(lRes) ?? []);
@@ -77,7 +84,7 @@ function BracketViewContent() {
   };
 
   const handleStartTournament = async () => {
-    if (!confirm("Initiate Combat? This locks registration and generates the final bracket.")) return;
+    if (!confirm("Start Tournament? This locks registration and generates the final bracket.")) return;
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
     const data = await safeJson(res);
     if (res.ok) { addLog("TOURNAMENT STARTED", "MATCHES INITIALIZED"); fetchTournamentData(); }
@@ -87,7 +94,7 @@ function BracketViewContent() {
   const handleJoin = async (userId: string) => {
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN(tournamentId!), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) });
     const data = await safeJson(res);
-    if (res.ok) { addLog("REGISTRATION", "COMBATANT SECURED"); fetchTournamentData(); return true; }
+    if (res.ok) { addLog("REGISTRATION", "PARTICIPANT REGISTERED"); fetchTournamentData(); return true; }
     addLog("ERROR", data?.message || "UPLINK REJECTED"); return false;
   };
 
@@ -141,7 +148,12 @@ function BracketViewContent() {
               <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-foreground font-poppins leading-none flex items-center gap-4">
                 {tournament?.name}
                 <span className="text-foreground/10 font-thin">/</span>
-                <span className="text-primary text-xl md:text-2xl">{tournament?.format.replace("_", " ")}</span>
+                <span className="text-primary text-xl md:text-2xl">
+                  {(() => {
+                    const fs = typeof tournament?.format === 'string' ? tournament.format : tournament?.format?.system;
+                    return fs === "HYBRID" ? "TOP CUT" : (fs?.replace("_", " ") || "UNKNOWN");
+                  })()}
+                </span>
               </h1>
               <div className="flex items-center gap-3">
                 <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${isAdmin ? "text-primary/60" : "text-foreground/20"}`}>
@@ -152,12 +164,69 @@ function BracketViewContent() {
               </div>
             </div>
           </div>
-          {isAdmin && tournament?.status === "OPEN" && (
-            <button onClick={handleStartTournament} className="px-8 py-3 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins">
-              Initiate Combat
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            <div className="flex bg-foreground/5 border border-white/5 p-1 rounded-xl">
+              <button 
+                onClick={() => { setViewMode("CARD"); addLog("UI_COMMAND", "SWITCHED TO CARD VIEW"); }}
+                className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "CARD" ? 'bg-primary text-white shadow-lg' : 'text-foreground/40 hover:text-foreground'}`}
+              >
+                {(() => {
+                  const fs = typeof tournament?.format === 'string' ? tournament.format : tournament?.format?.system;
+                  return fs === "SWISS" || fs === "ROUND_ROBIN" ? "Match List" : "Card View";
+                })()}
+              </button>
+              {(() => {
+                const fs = typeof tournament?.format === 'string' ? tournament.format : tournament?.format?.system;
+                const isHybrid = fs === "HYBRID";
+                const hasTopCut = tournament?.rounds?.some((r: any) => r.matches?.some((m: any) => m.phase === 2));
+                
+                if (fs === "SWISS" || fs === "ROUND_ROBIN") return false;
+                if (isHybrid && !hasTopCut) return false;
+                return true;
+              })() && (
+                <button 
+                  onClick={() => { setViewMode("BRACKET"); addLog("UI_COMMAND", "SWITCHED TO BRACKET VIEW"); }}
+                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "BRACKET" ? 'bg-primary text-white shadow-lg' : 'text-foreground/40 hover:text-foreground'}`}
+                >
+                  Bracket View
+                </button>
+              )}
+            </div>
+
+            {isAdmin && tournament?.status === "OPEN" && (
+              <button onClick={handleStartTournament} className="px-8 py-3 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 font-poppins">
+                Start Tournament
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Winner Announcement (if completed) */}
+        {tournament?.status === "COMPLETED" && tournament?.winner && (
+          <div className="bg-primary/5 border-[6px] border-primary/20 p-12 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+              <div className="space-y-4 text-center md:text-left">
+                <div className="flex items-center gap-4 justify-center md:justify-start">
+                  <div className="w-2 h-10 bg-primary" />
+                  <span className="text-[12px] font-black text-primary uppercase tracking-[0.5em] font-poppins italic">CHAMPION UNIT DETECTED</span>
+                </div>
+                <h2 className="text-6xl md:text-8xl font-black text-white uppercase tracking-tighter leading-none font-poppins italic group-hover:scale-[1.02] transition-transform duration-700">
+                  {tournament.winner.username || tournament.winner.guestName}
+                </h2>
+                <div className="flex items-center gap-4 justify-center md:justify-start">
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">RANK #01</span>
+                  <div className="w-1 h-1 rounded-full bg-primary" />
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">TOURNAMENT VICTOR</span>
+                </div>
+              </div>
+              <div className="w-32 h-32 md:w-48 md:h-48 bg-primary text-black flex items-center justify-center relative shadow-[0_0_50px_rgba(82,185,70,0.3)]">
+                <div className="absolute inset-2 border-2 border-black/20" />
+                <span className="text-6xl md:text-8xl font-black italic">{tournament.winner.username?.[0] || tournament.winner.guestName?.[0]}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bracket Area */}
         <main className={tournament?.status === "ONGOING" || tournament?.status === "COMPLETED" ? "h-[65vh] overflow-hidden" : "min-h-[40vh]"}
@@ -165,10 +234,26 @@ function BracketViewContent() {
           {tournament?.status === "ONGOING" || tournament?.status === "COMPLETED" ? (
             isMobile ? (
               <div className="h-full overflow-y-auto no-scrollbar">
-                <MobileView tournament={tournament} leaderboard={leaderboard} isAdmin={isAdmin} updating={updating} onOpenScoring={(m) => setScoringMatch(m)} addLog={addLog} />
+                <MobileView 
+                  tournament={tournament} 
+                  leaderboard={leaderboard} 
+                  isAdmin={isAdmin} 
+                  updating={updating} 
+                  onOpenScoring={(m) => setScoringMatch(m)} 
+                  addLog={addLog}
+                  viewMode={viewMode}
+                />
               </div>
             ) : (
-              <DesktopView tournament={tournament} leaderboard={leaderboard} isAdmin={isAdmin} updating={updating} onOpenScoring={(m) => setScoringMatch(m)} addLog={addLog} />
+              <DesktopView 
+                tournament={tournament} 
+                leaderboard={leaderboard} 
+                isAdmin={isAdmin} 
+                updating={updating} 
+                onOpenScoring={(m) => setScoringMatch(m)} 
+                addLog={addLog} 
+                viewMode={viewMode}
+              />
             )
           ) : (
             <BracketPreview 
@@ -178,6 +263,7 @@ function BracketViewContent() {
               tournamentId={tournamentId} 
               onRefresh={fetchTournamentData}
               addLog={addLog}
+              viewMode={viewMode}
             />
           )}
         </main>

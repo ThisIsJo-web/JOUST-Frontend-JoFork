@@ -1,8 +1,97 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Match, Round, LeaderboardEntry } from "../types";
 import MatchCard from "../../../../components/tournaments/bracket/MatchCard";
+import { 
+  ReactFlow, 
+  Background, 
+  Panel,
+  Node,
+  Edge,
+  Handle,
+  Position,
+  NodeProps,
+  EdgeTypes,
+  ConnectionMode,
+  ReactFlowProvider,
+  useReactFlow
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+
+// Layout Constants
+const COLUMN_WIDTH = 360;
+const BASE_MATCH_GAP = 150;
+const HEADER_HEIGHT = 100;
+
+// Custom Match Node Component
+const MatchNode = ({ data }: NodeProps<{ 
+    match: Match; 
+    isAdmin: boolean; 
+    updating: string | null; 
+    leaderboard: LeaderboardEntry[]; 
+    trackedUserId: string | null;
+    onOpenScoring: (match: Match, pos?: {x: number, y: number}) => void;
+}>) => {
+    return (
+        <div className="relative group">
+            {/* Input Handles (Incoming from previous round) */}
+            <Handle 
+                type="target" 
+                position={Position.Left} 
+                className="!opacity-0 !w-0 !h-0" 
+            />
+            
+            <div onClick={(e) => {
+                e.stopPropagation();
+                data.onOpenScoring(data.match, { x: e.clientX, y: e.clientY });
+            }}>
+                <MatchCard 
+                    match={data.match} 
+                    onOpenScoring={() => {}}
+                    isAdmin={data.isAdmin}
+                    isUpdating={data.updating === data.match.id}
+                    leaderboard={data.leaderboard}
+                    trackedUserId={data.trackedUserId}
+                />
+            </div>
+
+            {/* Output Handle (Outgoing to next round) */}
+            <Handle 
+                type="source" 
+                position={Position.Right} 
+                className="!opacity-0 !w-0 !h-0"
+            />
+        </div>
+    );
+};
+
+// Custom Champion Node
+const ChampionNode = ({ data }: NodeProps<{ label: string }>) => (
+    <div className="flex flex-col items-center">
+        <Handle type="target" position={Position.Left} className="!opacity-0" />
+        <div className="w-72 p-12 flex flex-col items-center justify-center gap-6 bg-white/5 border border-dashed border-white/10 rounded-sm">
+            <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center text-white/20">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/40">{data.label}</span>
+        </div>
+    </div>
+);
+
+const HeaderNode = ({ data }: NodeProps<{ label: string; sublabel: string }>) => (
+    <div className="w-80 flex flex-col justify-center border-b border-white/5 bg-zinc-900/30 px-4 py-2 opacity-80">
+        <span className="text-[11px] font-bold text-white tracking-widest uppercase">{data.label}</span>
+        <span className="text-[9px] text-white/30 uppercase tracking-tighter">{data.sublabel}</span>
+    </div>
+);
+
+const ChampionHeaderNode = ({ data }: NodeProps<{ label: string }>) => (
+    <div className="w-80 flex flex-col justify-center border-b border-primary/20 bg-primary/5 px-4 py-2">
+        <span className="text-[11px] font-bold text-primary tracking-widest uppercase">{data.label}</span>
+    </div>
+);
+
 
 interface EliminationLayoutProps {
     tournament: any;
@@ -12,8 +101,53 @@ interface EliminationLayoutProps {
     onOpenScoring: (match: Match, pos?: {x: number, y: number}) => void;
     addLog: (action: string, details?: string) => void;
 }
+ 
+function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: Node[] }) {
+    const { setCenter, fitView } = useReactFlow();
 
-type Tab = "WINNERS" | "LOSERS" | "GRAND_FINAL";
+    useEffect(() => {
+        if (!trackedUserId) {
+            fitView({ padding: 0.1, duration: 800 });
+            return;
+        }
+        
+        const targetNode = nodes.find(n => 
+            (n.data as any)?.match?.player1?.userId === trackedUserId || 
+            (n.data as any)?.match?.player2?.userId === trackedUserId
+        );
+        
+        if (targetNode) {
+            // Offset to roughly center the match card
+            setCenter(targetNode.position.x + 160, targetNode.position.y + 60, { zoom: 1, duration: 800 });
+        }
+    }, [trackedUserId, nodes, setCenter, fitView]);
+
+    return (
+        <Panel position="bottom-center" className="flex gap-2 p-4 z-50 mb-8">
+            <div className="bg-[#0a0a0a] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-sm p-1 flex items-center">
+                <button onClick={() => fitView({ duration: 800 })} className="px-6 py-3 text-white/60 text-[10px] font-bold hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">
+                    Reset View
+                </button>
+                <div className="w-px h-6 bg-white/10 mx-1" />
+                <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="px-6 py-3 text-white/60 text-[10px] font-bold hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">
+                    Scroll Page ▼
+                </button>
+            </div>
+        </Panel>
+    );
+}
+
+function FlowLegend() {
+    return (
+        <Panel position="top-right" className="hidden md:block p-4 pointer-events-none z-50">
+            <div className="flex flex-col gap-1 text-[10px] font-bold tracking-widest text-white/40 uppercase bg-black/80 p-4 border border-white/10 backdrop-blur-sm shadow-xl rounded-sm">
+                <span><strong className="text-white">SCROLL</strong>: PAN CANVAS</span>
+                <span><strong className="text-white">CTRL + SCROLL</strong>: ZOOM</span>
+                <span><strong className="text-white">CLICK & DRAG</strong>: PAN CANVAS</span>
+            </div>
+        </Panel>
+    );
+}
 
 export default function EliminationLayout({
     tournament,
@@ -23,397 +157,219 @@ export default function EliminationLayout({
     onOpenScoring,
     addLog
 }: EliminationLayoutProps) {
-    const isDoubleElim = tournament.format === "DOUBLE_ELIMINATION";
-    const [activeTab, setActiveTab] = useState<Tab>("WINNERS");
-    
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLDivElement>(null);
-    const winnersRef = useRef<HTMLDivElement>(null);
-    const losersRef = useRef<HTMLDivElement>(null);
-    const grandFinalRef = useRef<HTMLDivElement>(null);
-
-    // Zoom state (1.0 is the new default, equivalent to previous 0.8)
-    const [zoom, setZoom] = useState(0.8);
-
-    // 2D Draggable state
-    const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [startY, setStartY] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
-    const [scrollTop, setScrollTop] = useState(0);
-    const [dragDistance, setDragDistance] = useState(0);
-
-    // Player Tracking state
     const [trackedUserId, setTrackedUserId] = useState<string | null>(null);
-    const [trackIndex, setTrackIndex] = useState(0);
 
-    const winnersRounds = tournament?.rounds?.filter((r: Round) => r.roundNumber < 100) || [];
-    const losersRounds = tournament?.rounds?.filter((r: Round) => r.roundNumber >= 100 && r.roundNumber < 200) || [];
-    const grandFinals = tournament?.rounds?.filter((r: Round) => r.roundNumber >= 200) || [];
+    const nodeTypes = useMemo(() => ({
+        match: MatchNode,
+        champion: ChampionNode,
+        header: HeaderNode,
+        championHeader: ChampionHeaderNode
+    }), []);
 
-    const maxMatches = Math.max(
-        ...winnersRounds.map((r: Round) => r.matches.length),
-        ...losersRounds.map((r: Round) => r.matches.length),
-        1
-    );
-    const internalCanvasHeight = Math.max(1000, maxMatches * 220);
+    const winnersRounds = useMemo(() => tournament?.rounds?.filter((r: Round) => r.roundNumber < 100).sort((a: Round, b: Round) => a.roundNumber - b.roundNumber) || [], [tournament]);
+    const losersRounds = useMemo(() => tournament?.rounds?.filter((r: Round) => r.roundNumber >= 100 && r.roundNumber < 200).sort((a: Round, b: Round) => a.roundNumber - b.roundNumber) || [], [tournament]);
+    const grandFinals = useMemo(() => tournament?.rounds?.filter((r: Round) => r.roundNumber >= 200).sort((a: Round, b: Round) => a.roundNumber - b.roundNumber) || [], [tournament]);
 
-    const grandChampion = tournament?.status === "COMPLETED" && leaderboard.length > 0 ? leaderboard[0] : null;
+    // Recursive Y positioning logic (shared with React Flow)
+    const getMatchY = useCallback((roundIdx: number, matchIdx: number, offset: number = 0): number => {
+        if (roundIdx === 0) return (matchIdx + 1) * BASE_MATCH_GAP + offset;
+        const p1Y = getMatchY(roundIdx - 1, matchIdx * 2, offset);
+        const p2Y = getMatchY(roundIdx - 1, matchIdx * 2 + 1, offset);
+        return (p1Y + p2Y) / 2;
+    }, []);
 
-    const trackedMatches = useMemo(() => {
-        if (!trackedUserId) return [];
-        const allMatches: Match[] = [];
-        tournament?.rounds?.forEach((r: Round) => {
-            r.matches.forEach((m: Match) => {
-                if (m.player1?.id === trackedUserId || m.player2?.id === trackedUserId) {
-                    allMatches.push(m);
+    const { nodes, edges } = useMemo(() => {
+        const nodes: Node[] = [];
+        const edges: Edge[] = [];
+
+        // 1. Winners Bracket
+            winnersRounds.forEach((round: Round, rIdx: number) => {
+                nodes.push({
+                    id: `header-round-${round.roundNumber}`,
+                    type: 'header',
+                    position: { x: rIdx * COLUMN_WIDTH, y: 50 },
+                    data: { label: `WINNERS ROUND ${round.roundNumber}`, sublabel: 'WINNERS BRACKET' },
+                    draggable: false, selectable: false
+                });
+
+            round.matches.forEach((match: Match, mIdx: number) => {
+                const y = getMatchY(rIdx, mIdx);
+                nodes.push({
+                    id: match.id,
+                    type: 'match',
+                    position: { x: rIdx * COLUMN_WIDTH, y: y },
+                    data: { match, isAdmin, updating, leaderboard, trackedUserId, onOpenScoring },
+                    draggable: false
+                });
+
+                if (match.nextMatchId) {
+                    edges.push({
+                        id: `edge-${match.id}-${match.nextMatchId}`,
+                        source: match.id, target: match.nextMatchId,
+                        type: 'step', style: { stroke: 'rgba(82, 185, 70, 0.2)', strokeWidth: 2 },
+                        animated: match.status === 'ONGOING'
+                    });
                 }
             });
         });
-        return allMatches;
-    }, [trackedUserId, tournament]);
 
-    const navigateToTrackedMatch = (idx: number) => {
-        const match = trackedMatches[idx];
-        if (!match) return;
-        const element = document.getElementById(`match-${match.id}`);
-        if (element && scrollContainerRef.current) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            setTrackIndex(idx);
-            addLog("NAVIGATION", `CENTERED MATCH ${idx + 1} FOR TRACKED COMBATANT`);
-        }
-    };
+        // 2. Losers Bracket (Rendered below Winners)
+        const losersVerticalOffset = (winnersRounds[0]?.matches?.length || 4) * BASE_MATCH_GAP + 400;
+            losersRounds.forEach((round: Round, rIdx: number) => {
+                const losersRoundLabel = round.roundNumber >= 101 ? `LOSERS ROUND ${round.roundNumber - 100}` : `LOSERS ROUND ${rIdx + 1}`;
+                nodes.push({
+                    id: `header-round-${round.roundNumber}`,
+                    type: 'header',
+                    position: { x: rIdx * COLUMN_WIDTH, y: losersVerticalOffset - 100 },
+                    data: { label: losersRoundLabel, sublabel: 'LOSERS BRACKET' },
+                    draggable: false, selectable: false
+                });
 
-    const handleMatchClick = (match: Match, e?: React.MouseEvent) => {
-        // Just open scoring, no auto-scrolling/focusing
-        onOpenScoring(match, e ? { x: e.clientX, y: e.clientY } : undefined);
-    };
+            round.matches.forEach((match: Match, mIdx: number) => {
+                // For losers bracket, we might want a different Y calc or just the same with offset
+                // But double elim losers bracket is complex. For now, simple grid-ish layout.
+                const y = losersVerticalOffset + (mIdx * BASE_MATCH_GAP);
+                nodes.push({
+                    id: match.id,
+                    type: 'match',
+                    position: { x: rIdx * COLUMN_WIDTH, y: y },
+                    data: { match, isAdmin, updating, leaderboard, trackedUserId, onOpenScoring },
+                    draggable: false
+                });
 
-    const getRoundLabel = (round: Round, totalRoundsInGroup: number) => {
-        const roundNum = round.roundNumber;
-        if (isDoubleElim) {
-            if (roundNum >= 200) return "GRAND FINAL";
-            if (roundNum >= 100) {
-                const losersRoundIdx = roundNum - 100;
-                if (losersRoundIdx === totalRoundsInGroup) return "LOSERS SEMIFINAL";
-                return `LOSERS R${losersRoundIdx}`;
-            }
-            if (roundNum === totalRoundsInGroup) return "WINNERS FINAL";
-            return `WINNERS R${roundNum}`;
-        }
-        if (roundNum === totalRoundsInGroup) return "CHAMPIONSHIP";
-        if (roundNum === totalRoundsInGroup - 1) return "SEMI-FINALS";
-        return `ROUND ${roundNum}`;
-    };
-
-    const handleTabClick = (tab: Tab) => {
-        let targetId = "";
-        if (tab === "WINNERS") {
-            const firstRound = winnersRounds[0];
-            if (firstRound) targetId = `round-${firstRound.id}`;
-        } else if (tab === "LOSERS") {
-            const firstRound = losersRounds[0];
-            if (firstRound) targetId = `round-${firstRound.id}`;
-        } else if (tab === "GRAND_FINAL") {
-            const firstRound = grandFinals[0];
-            if (firstRound) targetId = `round-${firstRound.id}`;
-            else targetId = "champion-section";
-        }
-
-        const element = document.getElementById(targetId);
-        if (element && scrollContainerRef.current) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            setActiveTab(tab);
-            addLog("VIEWPORT_SHIFT", `FOCUSED ON ${tab.replace("_", " ")} SECTION`);
-        }
-    };
-
-    const handleScroll = () => {
-        if (!scrollContainerRef.current || !isDoubleElim || isDragging) return;
-        const container = scrollContainerRef.current;
-        
-        // Get positions of the first round in each section
-        const winnersElem = winnersRounds[0] ? document.getElementById(`round-${winnersRounds[0].id}`) : null;
-        const losersElem = losersRounds[0] ? document.getElementById(`round-${losersRounds[0].id}`) : null;
-        const gfElem = grandFinals[0] ? document.getElementById(`round-${grandFinals[0].id}`) : document.getElementById("champion-section");
-
-        const containerRect = container.getBoundingClientRect();
-        const centerX = containerRect.left + containerRect.width / 2;
-
-        const sections = [
-            { id: "WINNERS" as Tab, elem: winnersElem },
-            { id: "LOSERS" as Tab, elem: losersElem },
-            { id: "GRAND_FINAL" as Tab, elem: gfElem }
-        ];
-
-        // Find which section element is closest to the center of the viewport
-        let closestTab: Tab = activeTab;
-        let minDistance = Infinity;
-
-        sections.forEach(section => {
-            if (section.elem) {
-                const rect = section.elem.getBoundingClientRect();
-                const dist = Math.abs((rect.left + rect.width / 2) - centerX);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    closestTab = section.id;
+                if (match.nextMatchId) {
+                    edges.push({
+                        id: `edge-${match.id}-${match.nextMatchId}`,
+                        source: match.id, target: match.nextMatchId,
+                        type: 'step', style: { stroke: 'rgba(245, 158, 11, 0.2)', strokeWidth: 2 },
+                        animated: match.status === 'ONGOING'
+                    });
                 }
-            }
+            });
         });
 
-        if (closestTab !== activeTab) {
-            setActiveTab(closestTab);
+        // 3. Grand Finals
+        grandFinals.forEach((round: Round, rIdx: number) => {
+            const gfX = (winnersRounds.length + rIdx) * COLUMN_WIDTH;
+            const gfY = getMatchY(winnersRounds.length - 1, 0);
+
+            nodes.push({
+                id: `header-round-${round.roundNumber}`,
+                type: 'header',
+                position: { x: gfX, y: 50 },
+                data: { label: 'GRAND FINALS', sublabel: 'CHAMPIONSHIP' },
+                draggable: false, selectable: false
+            });
+
+            round.matches.forEach((match: Match, mIdx: number) => {
+                nodes.push({
+                    id: match.id,
+                    type: 'match',
+                    position: { x: gfX, y: gfY + (mIdx * 200) },
+                    data: { match, isAdmin, updating, leaderboard, trackedUserId, onOpenScoring },
+                    draggable: false
+                });
+
+                if (match.nextMatchId) {
+                    edges.push({
+                        id: `edge-${match.id}-${match.nextMatchId}`,
+                        source: match.id, target: match.nextMatchId,
+                        type: 'step', style: { stroke: 'rgba(255, 255, 255, 0.4)', strokeWidth: 3 },
+                        animated: match.status === 'ONGOING'
+                    });
+                }
+            });
+        });
+
+        // 4. Champion Pedestal
+        const allRounds = [...winnersRounds, ...grandFinals];
+        if (allRounds.length > 0) {
+            const lastRound = allRounds[allRounds.length - 1];
+            const finalMatch = lastRound.matches[0];
+            if (finalMatch) {
+                const championX = allRounds.length * COLUMN_WIDTH;
+                const championY = getMatchY(winnersRounds.length - 1, 0);
+
+                nodes.push({
+                    id: 'champion-header',
+                    type: 'championHeader',
+                    position: { x: championX, y: 50 },
+                    data: { label: 'CHAMPION' },
+                    draggable: false, selectable: false
+                });
+
+                nodes.push({
+                    id: 'champion-pedestal',
+                    type: 'champion',
+                    position: { x: championX, y: championY },
+                    data: { label: tournament?.winner?.username || 'The Ultimate Winner' },
+                    draggable: false
+                });
+
+                edges.push({
+                    id: `edge-final-champion`,
+                    source: finalMatch.id,
+                    target: 'champion-pedestal',
+                    type: 'step',
+                    style: { stroke: 'rgba(82, 185, 70, 0.5)', strokeWidth: 4, strokeDasharray: '5 5' }
+                });
+            }
         }
-    };
 
-    const handleTabWheel = (e: React.WheelEvent) => {
-        if (scrollContainerRef.current) {
-            e.preventDefault();
-            scrollContainerRef.current.scrollLeft += e.deltaY + e.deltaX;
-        }
-    };
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!scrollContainerRef.current) return;
-        setIsDragging(true);
-        setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-        setStartY(e.pageY - scrollContainerRef.current.offsetTop);
-        setScrollLeft(scrollContainerRef.current.scrollLeft);
-        setScrollTop(scrollContainerRef.current.scrollTop);
-        setDragDistance(0);
-    };
-
-    const handleMouseLeave = () => setIsDragging(false);
-    const handleMouseUp = () => setIsDragging(false);
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging || !scrollContainerRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - scrollContainerRef.current.offsetLeft;
-        const y = e.pageY - scrollContainerRef.current.offsetTop;
-        const walkX = (x - startX) * 1.5;
-        const walkY = (y - startY) * 1.5;
-        scrollContainerRef.current.scrollLeft = scrollLeft - walkX;
-        scrollContainerRef.current.scrollTop = scrollTop - walkY;
-        setDragDistance(Math.max(Math.abs(x - startX), Math.abs(y - startY)));
-    };
-
-    const renderRound = (round: Round, totalInGroup: number) => {
-        const matchCount = round.matches.length;
-        const h = internalCanvasHeight;
-
-        return (
-            <div 
-                id={`round-${round.id}`}
-                key={round.id} 
-                className="h-[65vh] flex flex-col gap-8 shrink-0 w-80 md:w-96 relative" 
-                style={{ height: `${h}px` }}
-            >
-                <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 text-center font-poppins shrink-0">
-                    {getRoundLabel(round, totalInGroup)}
-                </h2>
-                <div className="relative flex-1">
-                    {round.matches.map((match: Match, i: number) => {
-                        const topPos = (h / (matchCount + 1)) * (i + 1) - 50;
-                        return (
-                            <div 
-                                id={`match-${match.id}`}
-                                key={match.id} 
-                                style={{ top: `${topPos}px`, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}
-                                onClick={(e) => {
-                                    if (dragDistance > 5) return;
-                                    e.stopPropagation();
-                                    handleMatchClick(match, e);
-                                }} 
-                                className="shrink-0"
-                            >
-                                <MatchCard 
-                                    match={match} 
-                                    onOpenScoring={() => {}} // Controlled by container onClick
-                                    isAdmin={isAdmin}
-                                    isUpdating={updating === match.id}
-                                    leaderboard={leaderboard}
-                                    showPoints={false}
-                                    trackedUserId={trackedUserId}
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    const renderChampion = () => (
-        <div id="champion-section" className="flex flex-col gap-8 shrink-0 w-80 md:w-96" style={{ height: `${internalCanvasHeight}px` }}>
-            <h2 className="text-[8px] font-black text-primary uppercase tracking-[0.5em] border-b border-white/5 pb-2 text-center font-poppins shrink-0">
-                Champion
-            </h2>
-            <div className="flex flex-col justify-center flex-1 items-center py-20">
-                <div className={`w-72 p-16 flex flex-col items-center justify-center gap-8 transition-all duration-700 shadow-2xl ${grandChampion ? 'bg-primary text-white border-primary' : 'bg-foreground/5 border border-dashed border-foreground/10'}`}>
-                    <div className={`w-20 h-20 rounded-full border-2 flex items-center justify-center ${grandChampion ? 'border-white/40 text-white' : 'border-foreground/10 text-foreground/10'}`}>
-                        <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
-                    </div>
-                    <div className="flex flex-col items-center text-center">
-                        <span className={`text-[10px] font-black uppercase tracking-[0.3em] mb-2 font-poppins ${grandChampion ? 'text-white/60' : 'text-foreground/20'}`}>The Ultimate Winner</span>
-                        <span className={`text-3xl font-black uppercase tracking-tighter font-poppins leading-tight ${grandChampion ? 'text-white' : 'text-foreground/10'}`}>
-                            {grandChampion?.username || "AWAITING..."}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-
-    const trackedUser = leaderboard.find(u => u.userId === trackedUserId);
+        return { nodes, edges };
+    }, [winnersRounds, losersRounds, grandFinals, isAdmin, updating, leaderboard, trackedUserId, onOpenScoring, getMatchY, tournament?.winner]);
 
     return (
-        <div className="space-y-6">
-            {/* Player Tracker Overlay */}
-            {trackedUserId && (
-                <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-6 animate-in slide-in-from-bottom-12 duration-700">
-                    <div className="bg-background/90 backdrop-blur-xl border border-primary/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(82,185,70,0.2)]">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-black">
-                                    {trackedUser?.username?.[0]?.toUpperCase() || "C"}
-                                </div>
-                                <div>
-                                    <p className="text-[8px] font-black text-primary uppercase tracking-[0.3em] font-poppins">Currently Tracking</p>
-                                    <p className="text-sm font-black text-foreground uppercase tracking-tight font-poppins">{trackedUser?.username}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button 
-                                    onClick={() => {
-                                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                                        addLog("NAV_COMMAND", "SCROLL TO STANDINGS VIEW");
-                                    }}
-                                    className="p-2 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-lg transition-all"
-                                    title="SCROLL TO STANDINGS"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-                                </button>
-                                <button onClick={() => setTrackedUserId(null)} className="p-2 text-foreground/20 hover:text-white transition-all text-sm font-black">✕</button>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-4 bg-foreground/5 p-1 rounded-2xl border border-white/5">
-                            <button onClick={() => navigateToTrackedMatch(Math.max(0, trackIndex - 1))} disabled={trackIndex === 0} className="w-12 h-12 rounded-xl bg-background flex items-center justify-center text-primary disabled:opacity-10 transition-all active:scale-90"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7"/></svg></button>
-                            <div className="flex flex-col items-center"><span className="text-[10px] font-black text-foreground uppercase tracking-tight">{trackedMatches.length > 0 ? `Match ${trackIndex + 1} of ${trackedMatches.length}` : "No Matches Found"}</span></div>
-                            <button onClick={() => navigateToTrackedMatch(Math.min(trackedMatches.length - 1, trackIndex + 1))} disabled={trackIndex === trackedMatches.length - 1 || trackedMatches.length === 0} className="w-12 h-12 rounded-xl bg-background flex items-center justify-center text-primary disabled:opacity-10 transition-all active:scale-90"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7"/></svg></button>
-                        </div>
+        <div className="flex flex-col h-full bg-[#0a0a0a]">
+            {/* Toolbar Panel */}
+            <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-white/10 shrink-0 z-20">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                         <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#52b946]" />
+                         <span className="text-[11px] font-bold text-white uppercase tracking-wider">Tournament Tree (React Flow Engine)</span>
                     </div>
-                </div>
-            )}
-
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 px-4">
-                <div className="flex flex-wrap items-center gap-4">
-                    {isDoubleElim ? (
-                        <div onWheel={handleTabWheel} className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl w-fit border border-white/5 cursor-ns-resize">
-                            <button onClick={() => handleTabClick("WINNERS")} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all font-poppins ${activeTab === "WINNERS" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-foreground/40 hover:text-foreground'}`}>Winners</button>
-                            <button onClick={() => handleTabClick("LOSERS")} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all font-poppins ${activeTab === "LOSERS" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-foreground/40 hover:text-foreground'}`}>Losers</button>
-                            <button onClick={() => handleTabClick("GRAND_FINAL")} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all font-poppins ${activeTab === "GRAND_FINAL" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-foreground/40 hover:text-foreground'}`}>Grand Final</button>
-                        </div>
-                    ) : <div />}
-                    <select 
-                        value={trackedUserId || ""} 
-                        onChange={(e) => { 
-                            const id = e.target.value || null; 
-                            setTrackedUserId(id); 
-                            if (id) {
-                                const u = leaderboard.find(user => user.userId === id);
-                                addLog("TELEMETRY", `INITIATING TRACKING FOR: ${u?.username}`);
-                                navigateToTrackedMatch(0);
-                            }
-                        }} 
-                        className="bg-foreground/5 text-foreground/40 hover:text-primary border border-white/5 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer transition-all"
-                    >
-                        <option value="">Track Combatant</option>
-                        {leaderboard.map(u => (
-                            <option key={u.userId} value={u.userId}>{u.username}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-foreground/5 p-1 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-1 px-2 border-r border-white/5">
-                            {[0.8, 1, 1.2].map((lvl) => (
-                                <button 
-                                    key={lvl} 
-                                    onClick={() => {
-                                        setZoom(lvl);
-                                        addLog("UI_COMMAND", `OPTICAL MAGNIFICATION SET TO ${lvl * 100}%`);
-                                    }} 
-                                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${zoom === lvl ? 'bg-primary text-white' : 'text-foreground/20 hover:text-foreground/40'}`}
-                                >
-                                    {lvl === 0.8 ? '80%' : lvl === 1 ? '100%' : '120%'}
-                                </button>
+                    <div className="relative">
+                        <select 
+                            value={trackedUserId || ""} 
+                            onChange={(e) => setTrackedUserId(e.target.value || null)} 
+                            className={`bg-white/5 border border-white/10 px-4 py-2 pr-8 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer transition-all rounded-sm ${trackedUserId ? 'text-primary' : 'text-white/60 hover:border-primary hover:text-white'}`}
+                        >
+                            <option value="">{trackedUserId ? "Back to Neutral" : "Track Participant"}</option>
+                            {leaderboard.map(u => (
+                                <option key={u.userId} value={u.userId}>{u.username}</option>
                             ))}
-                        </div>
-                        <button 
-                            onClick={() => {
-                                const newZoom = Math.max(0.2, zoom - 0.1);
-                                setZoom(newZoom);
-                                addLog("UI_COMMAND", `MAGNIFICATION REDUCED TO ${Math.round(newZoom * 100)}%`);
-                            }} 
-                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                        >-</button>
-                        <button 
-                            onClick={() => {
-                                const newZoom = Math.min(2, zoom + 0.1);
-                                setZoom(newZoom);
-                                addLog("UI_COMMAND", `MAGNIFICATION INCREASED TO ${Math.round(newZoom * 100)}%`);
-                            }} 
-                            className="w-10 h-10 rounded-xl bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-all font-black text-lg"
-                        >+</button>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">▼</div>
                     </div>
                 </div>
             </div>
 
-            <div 
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-                onMouseDown={handleMouseDown}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-                className={`overflow-auto h-[80vh] custom-scrollbar ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'} bg-black/5 rounded-[3rem] border border-white/5`}
-            >
-                <div 
-                    ref={canvasRef}
-                    style={{ 
-                        transform: `scale(${zoom})`,
-                        transformOrigin: 'top left',
-                        width: 'max-content',
-                        height: 'max-content'
-                    }}
-                    className="flex gap-20 items-start px-12 pt-12 pb-48"
-                >
-                    <div ref={winnersRef} className="flex gap-20 items-start">
-                        {winnersRounds.map((r: any) => renderRound(r, winnersRounds.length))}
-                        {!isDoubleElim && renderChampion()}
-                    </div>
-                    {isDoubleElim && (
-                        <>
-                            <div ref={losersRef} className="flex gap-20 items-start border-l border-white/5 pl-20">
-                                {losersRounds.map((r: any) => renderRound(r, losersRounds.length))}
-                            </div>
-                            <div ref={grandFinalRef} className="flex gap-20 items-start border-l border-white/5 pl-20">
-                                {grandFinals.map((r: any) => renderRound(r, 1))}
-                                {renderChampion()}
-                            </div>
-                        </>
-                    )}
-                </div>
+            {/* Bracket Canvas */}
+            <div style={{ width: '100%', height: '80vh', minHeight: '800px' }}>
+                <ReactFlowProvider>
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        nodeTypes={nodeTypes}
+                        connectionMode={ConnectionMode.Loose}
+                        fitView
+                        minZoom={0.2}
+                        maxZoom={1.5}
+                        colorMode="dark"
+                        proOptions={{ hideAttribution: true }}
+                        nodesDraggable={false}
+                        nodesConnectable={false}
+                        nodesFocusable={false}
+                        elementsSelectable={false}
+                        zoomOnDoubleClick={false}
+                        panOnScroll={true}
+                    >
+                        <Background color="#111" gap={20} />
+                        <FlowControls trackedUserId={trackedUserId} nodes={nodes} />
+                        <FlowLegend />
+                    </ReactFlow>
+                </ReactFlowProvider>
             </div>
-
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(82, 185, 70, 0.3); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(82, 185, 70, 0.5); }
-            `}</style>
         </div>
     );
 }

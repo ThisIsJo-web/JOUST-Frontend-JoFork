@@ -80,10 +80,10 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#1B1B1B]/80 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative bg-[#1B1B1B] border border-white/10 w-full max-w-[500px] shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden rounded-sm">
-        <div className="p-6 border-b border-white/5 bg-black">
+        <div className="p-6 border-b border-white/5 bg-[#1B1B1B]">
           <h3 className="text-lg font-semibold text-white tracking-tight">
             {user ? "Edit User Account" : "Create New User"}
           </h3>
@@ -98,7 +98,7 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
                 type="text" required
                 value={formData.username}
                 onChange={e => setFormData({ ...formData, username: e.target.value })}
-                className="w-full h-10 bg-black border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
+                className="w-full h-10 bg-[#1B1B1B] border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
                 placeholder="Identity Label"
               />
             </div>
@@ -109,7 +109,7 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
                 type="email" required
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full h-10 bg-black border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
+                className="w-full h-10 bg-[#1B1B1B] border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
                 placeholder="system@domain.com"
               />
             </div>
@@ -120,7 +120,7 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className={`w-full h-10 bg-black border px-3 flex items-center justify-between transition-all ${
+                  className={`w-full h-10 bg-[#1B1B1B] border px-3 flex items-center justify-between transition-all ${
                     isDropdownOpen ? 'border-primary' : 'border-white/10 hover:border-white/20'
                   } rounded-sm`}
                 >
@@ -133,7 +133,7 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute top-full left-0 w-full mt-1 bg-black border border-white/10 shadow-2xl z-20">
+                  <div className="absolute top-full left-0 w-full mt-1 bg-[#1B1B1B] border border-white/10 shadow-2xl z-20">
                     {AVAILABLE_ROLES.map(role => (
                       <button
                         key={role}
@@ -160,7 +160,7 @@ export default function UserModal({ isOpen, onClose, user, onSubmit }: Props) {
                 required={!user}
                 value={formData.password}
                 onChange={e => setFormData({ ...formData, password: e.target.value })}
-                className="w-full h-10 bg-black border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
+                className="w-full h-10 bg-[#1B1B1B] border border-white/10 px-3 text-sm text-white focus:outline-none focus:border-primary transition-all placeholder:text-white/10 rounded-sm"
                 placeholder={user ? "Unchanged" : "••••••••"}
               />
             </div>

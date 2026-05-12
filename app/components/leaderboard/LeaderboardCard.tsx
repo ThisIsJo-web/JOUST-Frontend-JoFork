@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 
 interface LeaderboardEntry {
@@ -49,7 +49,7 @@ export default function LeaderboardCard({ entry, idx }: LeaderboardCardProps) {
   }
 
   return (
-    <m.motion.div
+    <motion.div
       initial={{ opacity: 0, x: -20 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -99,7 +99,7 @@ export default function LeaderboardCard({ entry, idx }: LeaderboardCardProps) {
               <span className="text-[9px] font-black text-primary">{(entry.matchWinPct * 100).toFixed(0)}%</span>
             </div>
             <div className="w-full h-1 bg-foreground/5 overflow-hidden">
-               <m.motion.div 
+               <motion.div 
                  initial={{ width: 0 }}
                  whileInView={{ width: `${entry.matchWinPct * 100}%` }}
                  transition={{ duration: 1, delay: 0.5 }}
@@ -125,6 +125,6 @@ export default function LeaderboardCard({ entry, idx }: LeaderboardCardProps) {
         )}
         <div className="absolute top-0 right-0 w-1 h-0 group-hover:h-full bg-primary transition-all duration-700 shadow-[0_0_10px_var(--color-primary-glow)]" />
       </Link>
-    </m.motion.div>
+    </motion.div>
   );
 }

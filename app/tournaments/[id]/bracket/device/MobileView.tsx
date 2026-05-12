@@ -12,6 +12,7 @@ interface MobileViewProps {
     updating: string | null;
     onOpenScoring: (match: Match) => void;
     addLog: (action: string, details?: string) => void;
+    viewMode: "CARD" | "BRACKET";
 }
 
 export default function MobileView({
@@ -20,10 +21,11 @@ export default function MobileView({
     isAdmin,
     updating,
     onOpenScoring,
-    addLog
+    addLog,
+    viewMode
 }: MobileViewProps) {
-    const isElimination = tournament?.format === "SINGLE_ELIMINATION" || tournament?.format === "DOUBLE_ELIMINATION";
-    const [viewMode, setViewMode] = React.useState<"FEED" | "BRACKET">("FEED");
+    const fs = tournament?.format?.system;
+    const isElimination = fs === "SINGLE_ELIMINATION" || fs === "DOUBLE_ELIMINATION" || fs === "HYBRID";
     const [trackedUserId, setTrackedUserId] = React.useState<string | null>(null);
     const [activePhase, setActivePhase] = React.useState<number>(0);
 
@@ -55,30 +57,6 @@ export default function MobileView({
                     activePhase={activePhase}
                     setActivePhase={setActivePhase}
                 />
-            )}
-
-            {/* View Toggle for Elimination Formats */}
-            {isElimination && (
-                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] flex bg-black/80 backdrop-blur-xl border border-white/10 p-1 rounded-2xl shadow-2xl">
-                    <button 
-                        onClick={() => {
-                            setViewMode("FEED");
-                            addLog("NAV_COMMAND", "SWITCHED TO COMBAT FEED");
-                        }}
-                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === "FEED" ? 'bg-primary text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        Feed
-                    </button>
-                    <button 
-                        onClick={() => {
-                            setViewMode("BRACKET");
-                            addLog("NAV_COMMAND", "SWITCHED TO TACTICAL TREE");
-                        }}
-                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === "BRACKET" ? 'bg-primary text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        Bracket
-                    </button>
-                </div>
             )}
         </div>
     );

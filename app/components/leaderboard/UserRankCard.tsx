@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 
 interface UserRankProps {
   stats: {
@@ -18,7 +18,7 @@ interface UserRankProps {
 export default function UserRankCard({ stats, loading }: UserRankProps) {
   if (loading) {
     return (
-      <div className="w-full bg-black border-4 border-white/10 p-12 animate-pulse">
+      <div className="w-full bg-surface border-4 border-white/10 p-12 animate-pulse">
         <div className="h-20 bg-white/5 w-1/2 mb-8" />
         <div className="grid grid-cols-3 gap-12">
             <div className="h-24 bg-white/5" />
@@ -32,10 +32,10 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
   if (!stats) return null;
 
   return (
-    <m.motion.div 
+    <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative w-full bg-black border-4 border-white p-12 hover:shadow-[24px_24px_0px_0px_#52B946] transition-all duration-500 overflow-hidden"
+      className="group relative w-full bg-surface border border-white/5 p-12 hover:shadow-[24px_24px_0px_0px_rgba(82,185,70,0.05)] transition-all duration-500 overflow-hidden"
     >
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12">
         <div className="text-center md:text-left space-y-6">
@@ -47,10 +47,10 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
           </div>
           
           <div className="flex flex-wrap items-center gap-6 justify-center md:justify-start">
-            <div className="bg-primary text-black px-8 py-3 text-xl font-black uppercase tracking-widest shadow-[8px_8px_0px_0px_white]">
+            <div className="bg-primary text-black px-8 py-3 text-xl font-black uppercase tracking-widest shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)]">
               RANK #{stats.rank}
             </div>
-            <div className="bg-white/5 border-2 border-white/10 px-8 py-3 text-xl font-black uppercase tracking-widest text-white">
+            <div className="bg-surface border-2 border-white/10 px-8 py-3 text-xl font-black uppercase tracking-widest text-white">
               {stats.points} POINTS
             </div>
           </div>
@@ -80,6 +80,6 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
           SESSION ACTIVE // {new Date().getFullYear()}
         </div>
       </div>
-    </m.motion.div>
+    </motion.div>
   );
 }

@@ -77,7 +77,7 @@ export default function RosterPanel({ tournament, onReorder, onRemove }: Props) 
     <div className="lg:col-span-8 space-y-12">
       <div className="flex items-center gap-10">
         <h2 className="text-3xl font-black uppercase tracking-tighter text-foreground font-poppins">
-          Arena Roster <span className="text-foreground/10 ml-4 font-light">[{tournament.participants.length} / {tournament.maxPlayers}]</span>
+          Participant Roster <span className="text-foreground/10 ml-4 font-light">[{tournament.participants.length} / {tournament.maxPlayers}]</span>
         </h2>
         <div className="h-[1px] flex-1 bg-white/[0.05]" />
       </div>

@@ -1,13 +1,18 @@
-export interface CardGame {
+export type TournamentFormat = "SINGLE_ELIMINATION" | "DOUBLE_ELIMINATION" | "SWISS" | "ROUND_ROBIN";
+
+export interface TournamentFormatModel {
   id: string;
   name: string;
   description?: string | null;
+  gameName?: string | null;
+  system: string;
+  config: any;
+  isBuiltin: boolean;
 }
 
 export interface Tournament {
   id: string;
   name: string;
-  format: string;
   maxPlayers: number;
   prizePool: number | null;
   entranceFee: number | null;
@@ -22,8 +27,8 @@ export interface Tournament {
   createdBy?: {
     username: string;
   };
-  cardGameId?: string;
-  cardGame?: CardGame;
+  formatId: string;
+  format: string | TournamentFormatModel;
   participants: {
     id: string;
     userId: string;
@@ -78,4 +83,17 @@ export interface FormatDefinition {
     min?: number;
     max?: number;
   }>;
+}
+
+export interface TournamentTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  format: string;
+  config: FormatConfig;
+  isGlobal: boolean;
+  gameName?: string | null;
+  createdById: string;
+  createdBy?: { id: string; username: string | null };
+  createdAt: string;
 }

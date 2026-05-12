@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
-import CardGameModal from "../CardGameModal";
+import { TournamentFormatModel, TournamentTemplate } from "../../../tournaments/types";
 
-const inputCls = "w-full h-11 bg-black border border-white/10 px-4 text-sm text-white focus:outline-none focus:border-primary transition-all rounded-[4px] appearance-none placeholder:text-white/10";
+const inputCls = "w-full h-11 bg-[#1B1B1B] border border-white/10 px-4 text-sm text-white focus:outline-none focus:border-primary transition-all rounded-[4px] appearance-none placeholder:text-white/10";
 
 function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
@@ -20,21 +20,22 @@ function Field({ label, children, required }: { label: string; children: React.R
 
 interface Props {
   userId: string;
+  userRoles?: string[];
   onSuccess: (message: string) => void;
   onDiscard: () => void;
 }
 
-export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: Props) {
+export default function CreateTournamentForm({ userId, userRoles = [], onSuccess, onDiscard }: Props) {
+  const isAdmin = userRoles.includes("ADMIN");
   const [activeStep, setActiveStep] = useState<"IDENTITY" | "RULES" | "DEPLOYMENT">("IDENTITY");
 
   // IDENTITY
   const [name, setName] = useState("");
   const [format, setFormat] = useState("SINGLE_ELIMINATION");
   const [maxPlayers, setMaxPlayers] = useState(16);
-  const [cardGames, setCardGames] = useState<Array<{ id: string; name: string }>>([]);
+  const [formats, setFormats] = useState<TournamentFormatModel[]>([]);
   const [existingNames, setExistingNames] = useState<string[]>([]);
-  const [selectedCardGameId, setSelectedCardGameId] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedFormatId, setSelectedFormatId] = useState("");
 
   // RULES
   const [bestOf, setBestOf] = useState(1);
@@ -54,6 +55,16 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
   const [visitedSteps, setVisitedSteps] = useState<Set<string>>(new Set(["IDENTITY"]));
   const [nameError, setNameError] = useState<string | null>(null);
   const [isValidatingName, setIsValidatingName] = useState(false);
+
+  // FULL RULE ENGINE STATE
+  const [templates, setTemplates] = useState<TournamentTemplate[]>([]);
+  const [winsToAdvance, setWinsToAdvance] = useState(1);
+  const [sessionsCount, setSessionsCount] = useState(1);
+  const [pointsPerSession, setPointsPerSession] = useState(0);
+  const [pointsThreshold, setPointsThreshold] = useState(0);
+  const [tieBreakerOrder, setTieBreakerOrder] = useState<string[]>([]);
+  const [progressionType, setProgressionType] = useState("");
+  const [gameName, setGameName] = useState("");
 
   useEffect(() => {
     setVisitedSteps(prev => new Set(prev).add(activeStep));
@@ -87,14 +98,14 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const [gamesRes, tournamentsRes] = await Promise.all([
-        authenticatedFetch(API_ENDPOINTS.CARD_GAMES.LIST),
-        authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE)
+      const [formatsRes, tournamentsRes] = await Promise.all([
+        authenticatedFetch(API_ENDPOINTS.PRESETS.BASE),
+        authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE),
       ]);
-
-      if (gamesRes.ok) {
-        const data = await safeJson(gamesRes);
-        setCardGames(data ?? []);
+ 
+      if (formatsRes.ok) {
+        const data = await safeJson(formatsRes);
+        setFormats(data ?? []);
       }
       if (tournamentsRes.ok) {
         const data = await safeJson(tournamentsRes);
@@ -104,8 +115,28 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
     loadInitialData();
   }, []);
 
+  const applyFormat = (fmt: TournamentFormatModel) => {
+    setSelectedFormatId(fmt.id);
+    setGameName(fmt.gameName || "");
+    const c = fmt.config;
+    setFormat(fmt.system);
+    setBestOf(c.bestOf ?? 1);
+    setAllowDraw(c.allowDraw ?? false);
+    setWinsToAdvance(c.winsToAdvance ?? 1);
+    setSessionsCount(c.sessionsCount ?? 1);
+    setPointsPerSession(c.pointsPerSession ?? 0);
+    setPointsThreshold(c.pointsThreshold ?? 0);
+    if (fmt.system === "SWISS") {
+      setSwissRounds(c.swissRounds ?? 3);
+      setSwissPointsWin(c.swissPointsForWin ?? 3);
+      setSwissPointsDraw(c.swissPointsForDraw ?? 1);
+      setSwissPointsLoss(c.swissPointsForLoss ?? 0);
+    }
+  };
+
+
   // Validation Checkers
-  const isIdentityValid = !!(name && !nameError && selectedCardGameId && maxPlayers >= 2 && !isValidatingName);
+  const isIdentityValid = !!(name && !nameError && selectedFormatId && maxPlayers >= 2 && !isValidatingName);
   const isRulesValid = !!(bestOf >= 1);
   const isDeploymentValid = !!(startNow || date);
 
@@ -126,12 +157,15 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
     }
 
     const body = {
-      name, format, maxPlayers: Number(maxPlayers),
+      name, 
+      formatId: selectedFormatId, 
+      maxPlayers: Number(maxPlayers),
       prizePool: prizePool === "" ? null : Number(prizePool),
-      venue, date: finalDate, isPrivate, startNow,
+      venue, 
+      date: finalDate, 
+      isPrivate, 
+      startNow,
       createdById: userId,
-      ...(selectedCardGameId ? { cardGameId: selectedCardGameId } : {}),
-      formatConfig
     };
 
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.CREATE, {
@@ -149,8 +183,8 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
 
   const steps = [
     { id: "IDENTITY", label: "01. IDENTITY", valid: isIdentityValid && visitedSteps.has("IDENTITY") },
-    { id: "RULES", label: "02. RULE ENGINE", valid: isRulesValid && visitedSteps.has("RULES") },
-    { id: "DEPLOYMENT", label: "03. DEPLOYMENT", valid: isDeploymentValid && visitedSteps.has("DEPLOYMENT") },
+    { id: "RULES", label: "02. RULES", valid: isRulesValid && visitedSteps.has("RULES") },
+    { id: "DEPLOYMENT", label: "03. SCHEDULE", valid: isDeploymentValid && visitedSteps.has("DEPLOYMENT") },
   ] as const;
 
   return (
@@ -161,48 +195,50 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
           {/* Connecting Track */}
           <div className="absolute left-[7px] top-2 bottom-2 w-[1px] bg-white/5" />
           
-          {steps.map((step) => (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => setActiveStep(step.id)}
-              className="group relative flex items-start gap-6 text-left transition-all"
-            >
-              {/* Dot Indicator */}
-              <div className={`mt-1.5 w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 shadow-lg ${
-                step.valid 
-                  ? "bg-primary border-primary shadow-primary/20 scale-110" 
-                  : activeStep === step.id
-                    ? "bg-white border-white shadow-white/20 scale-110"
-                    : "bg-black border-white/10"
-              }`} />
+          {steps.map((step) => {
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => setActiveStep(step.id)}
+                className="group relative flex items-start gap-6 text-left transition-all"
+              >
+                {/* Dot Indicator */}
+                <div className={`mt-1.5 w-4 h-4 rounded-full border-2 z-10 transition-all duration-500 shadow-lg ${
+                  step.valid 
+                    ? "bg-primary border-primary shadow-primary/20 scale-110" 
+                    : activeStep === step.id
+                      ? "bg-white border-white shadow-white/20 scale-110"
+                      : "bg-[#1B1B1B] border-white/10"
+                }`} />
 
-              <div className="flex flex-col gap-1">
-                <span className={`text-[8px] font-black tracking-[0.4em] transition-all ${
-                  step.valid ? "text-primary" : "text-white/20"
-                }`}>
-                  {step.valid ? "VALIDATED" : "PENDING"}
-                </span>
-                <span className={`text-xs font-bold uppercase tracking-widest transition-all ${
-                  activeStep === step.id ? "text-white" : "text-white/40 group-hover:text-white/60"
-                }`}>
-                  {step.label.split(". ")[1]}
-                </span>
-              </div>
+                <div className="flex flex-col gap-1">
+                  <span className={`text-[8px] font-black tracking-[0.4em] transition-all ${
+                    step.valid ? "text-primary" : "text-white/20"
+                  }`}>
+                    {step.valid ? "VALIDATED" : "PENDING"}
+                  </span>
+                  <span className={`text-xs font-bold uppercase tracking-widest transition-all ${
+                    activeStep === step.id ? "text-white" : "text-white/40 group-hover:text-white/60"
+                  }`}>
+                    {step.label.split(". ")[1]}
+                  </span>
+                </div>
 
-              {/* Active Highlight Glow */}
-              {activeStep === step.id && (
-                <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-24 h-24 bg-primary/5 rounded-full blur-3xl -z-10" />
-              )}
-            </button>
-          ))}
+                {/* Active Highlight Glow */}
+                {activeStep === step.id && (
+                  <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-24 h-24 bg-primary/5 rounded-full blur-3xl -z-10" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </aside>
 
       {/* CONFIGURATION AREA */}
       <div className="flex-1 flex flex-col gap-8 min-w-0">
         {/* Main Operational Block */}
-        <div className="flex-1 bg-black/40 border border-white/5 p-12 rounded-[4px] relative overflow-hidden flex flex-col">
+        <div className="flex-1 bg-[#1B1B1B]/40 border border-white/5 p-12 rounded-[4px] relative overflow-hidden flex flex-col">
           {/* Technical Corner Greebles */}
           <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-white/10" />
           <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-white/10" />
@@ -220,165 +256,174 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-12"
                   >
-                    {/* Row 1: Select Card Game */}
+                    {/* Row 1: Select Format Template */}
                     <div className="space-y-6">
                       <div className="flex items-center gap-4">
-                        <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Select Card Game</h3>
+                        <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Tournament Format Selection</h3>
                         <div className="h-[1px] flex-1 bg-white/5" />
                       </div>
                       
-                      <div className="relative overflow-hidden group/matrix">
-                        <motion.div 
-                          drag="x"
-                          dragConstraints={{ 
-                            right: 0, 
-                            left: Math.min(0, -(cardGames.length * 216 - 800))
-                          }}
-                          dragElastic={0.05}
-                          className="flex gap-4 cursor-grab active:cursor-grabbing pb-2"
-                        >
-                          {cardGames.map((game) => (
-                            <button
-                              key={game.id}
-                              type="button"
-                              onClick={() => setSelectedCardGameId(game.id)}
-                              className={`p-4 border transition-all rounded-[4px] text-left relative overflow-hidden h-20 min-w-[200px] flex flex-col justify-end shrink-0 ${
-                                selectedCardGameId === game.id 
-                                  ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" 
-                                  : "bg-black/40 border-white/5 hover:border-white/10"
-                              }`}
-                            >
-                              <div className={`text-[10px] font-black uppercase tracking-tighter ${
-                                selectedCardGameId === game.id ? "text-primary" : "text-white"
-                              }`}>{game.name}</div>
-                              {selectedCardGameId === game.id && (
-                                <div className="absolute top-3 right-3 text-[7px] font-black text-primary tracking-[0.2em]">VALIDATED</div>
-                              )}
-                            </button>
-                          ))}
-                        </motion.div>
-                        <div className="absolute right-0 top-0 bottom-2 w-24 bg-gradient-to-l from-[#1B1B1B] to-transparent pointer-events-none" />
-                      </div>
-                    </div>
-
-                    {!selectedCardGameId ? (
-                              <div className="h-64 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-[4px]">
-                                <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse">Please select a game above...</div>
-                              </div>
-                            ) : (
-                              <div className="space-y-12 animate-in fade-in duration-700">
-                                {/* Format Selection */}
-                                <div className="space-y-6">
-                                  <div className="flex items-center gap-4">
-                                    <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Format Selection</h3>
-                                    <div className="h-[1px] flex-1 bg-white/5" />
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-6">
-                                    <Field label="Deployment Format" required>
-                                      <select 
-                                        value={format} 
-                                        onChange={e => setFormat(e.target.value)} 
-                                        className={inputCls}
-                                      >
-                                        <option value="" className="bg-black text-white/20">Select Protocol</option>
-                                        <option value="SINGLE_ELIMINATION" className="bg-black">SINGLE ELIMINATION</option>
-                                        <option value="DOUBLE_ELIMINATION" className="bg-black">DOUBLE ELIMINATION</option>
-                                        <option value="SWISS" className="bg-black">SWISS</option>
-                                        <option value="ROUND_ROBIN" className="bg-black">ROUND ROBIN</option>
-                                      </select>
-                                    </Field>
-                                  </div>
-                                </div>
-
-                                {/* Tournament Information */}
-                                {format && (
-                                  <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="space-y-6"
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Tournament Information</h3>
-                                      <div className="h-[1px] flex-1 bg-white/5" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-6">
-                                      <div className="space-y-2">
-                                        <Field label="Tournament Name" required>
-                                          <input 
-                                            type="text" 
-                                            value={name} 
-                                            onChange={e => setName(e.target.value)} 
-                                            placeholder="PRO LEAGUE SEASON 1" 
-                                            className={`${inputCls} ${nameError ? "border-red-500/50" : ""}`} 
-                                            required 
-                                          />
-                                        </Field>
-                                        <AnimatePresence>
-                                          {nameError && (
-                                            <motion.div 
-                                              key="name-error"
-                                              initial={{ opacity: 0, height: 0 }}
-                                              animate={{ opacity: 1, height: "auto" }}
-                                              exit={{ opacity: 0, height: 0 }}
-                                              className="text-[9px] font-black text-red-500 uppercase tracking-widest pl-1"
-                                            >
-                                              {nameError}
-                                            </motion.div>
-                                          )}
-                                          {isValidatingName && (
-                                            <motion.div 
-                                              key="validating"
-                                              initial={{ opacity: 0 }}
-                                              animate={{ opacity: 1 }}
-                                              className="text-[9px] font-black text-primary/40 uppercase tracking-widest pl-1 animate-pulse"
-                                            >
-                                              Validating Identifier...
-                                            </motion.div>
-                                          )}
-                                        </AnimatePresence>
-                                      </div>
-                                      <Field label="Player Capacity" required>
-                                        <input type="number" value={maxPlayers} onChange={e => setMaxPlayers(Number(e.target.value))} className={inputCls} required />
-                                      </Field>
-                                    </div>
-                                  </motion.div>
-                                )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {formats.map((fmt) => (
+                          <button
+                            key={fmt.id}
+                            type="button"
+                            onClick={() => applyFormat(fmt)}
+                            className={`p-6 border transition-all rounded-[4px] text-left relative overflow-hidden group ${
+                              selectedFormatId === fmt.id 
+                                ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" 
+                                : "bg-[#1B1B1B]/40 border-white/5 hover:border-white/10"
+                            }`}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <span className={`text-[10px] font-black uppercase tracking-tighter ${
+                                selectedFormatId === fmt.id ? "text-primary" : "text-white"
+                              }`}>{fmt.name}</span>
+                              <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{fmt.gameName || "GENERAL"}</span>
+                            </div>
+                            
+                            {selectedFormatId === fmt.id && (
+                              <div className="absolute top-0 right-0 p-2">
+                                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                               </div>
                             )}
-                          </motion.section>
-                        )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+ 
+                    {!selectedFormatId ? (
+                      <div className="h-48 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-[4px]">
+                        <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse text-center">
+                          Select a base format configuration<br/>to continue initialization sequence
+                        </div>
+                      </div>
+                    ) : (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-12 animate-in fade-in duration-700"
+                      >
+                         <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                              <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Event Specification</h3>
+                              <div className="h-[1px] flex-1 bg-white/5" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <Field label="Tournament Title" required>
+                                  <input 
+                                    type="text" 
+                                    value={name} 
+                                    onChange={e => setName(e.target.value)} 
+                                    placeholder="PRO LEAGUE SEASON 1" 
+                                    className={`${inputCls} ${nameError ? "border-red-500/50" : ""}`} 
+                                    required 
+                                  />
+                                </Field>
+                                <AnimatePresence>
+                                  {nameError && (
+                                    <motion.div 
+                                      key="name-error"
+                                      initial={{ opacity: 0, height: 0 }}
+                                      animate={{ opacity: 1, height: "auto" }}
+                                      exit={{ opacity: 0, height: 0 }}
+                                      className="text-[9px] font-black text-red-500 uppercase tracking-widest pl-1"
+                                    >
+                                      {nameError}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                              <Field label="Maximum Participants" required>
+                                <input type="number" value={maxPlayers} onChange={e => setMaxPlayers(Number(e.target.value))} className={inputCls} required />
+                              </Field>
+                             </div>
+                          </div>
+                       </motion.div>
+                     )}
+                   </motion.section>
+                 )}
 
               {activeStep === "RULES" && (
-                <motion.section 
+                <motion.section
                   key="rules"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-8"
                 >
-                  <div className="flex items-center gap-4">
-                    <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Match Parameters</h3>
-                    <div className="h-[1px] flex-1 bg-white/5" />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                      <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Match &amp; Scoring Rules</h3>
+                      <div className="h-[1px] flex-1 bg-white/5" />
+                    </div>
+                    
+                    {/* Template Selector — available to all */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Active System:</span>
+                      <div className="bg-white/5 border border-white/10 text-[9px] font-black text-primary uppercase px-4 py-2 rounded-[4px] tracking-widest">
+                        {format.replace(/_/g, " ")}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <Field label="Match Intensity (Best Of)">
-                      <input type="number" value={bestOf} onChange={e => setBestOf(Number(e.target.value))} min={1} className={inputCls} />
-                    </Field>
-                    <Field label="Prize Pool">
-                      <input type="number" value={prizePool} onChange={e => setPrizePool(e.target.value === "" ? "" : Number(e.target.value))} placeholder="0.00" className={inputCls} />
-                    </Field>
-                    <Field label="Allow Draws">
-                      <select value={allowDraw ? "YES" : "NO"} onChange={e => setAllowDraw(e.target.value === "YES")} className={inputCls}>
-                        <option value="NO" className="bg-black">NO (FORCE WIN)</option>
-                        <option value="YES" className="bg-black">YES (PERMIT DRAW)</option>
-                      </select>
-                    </Field>
-                    {format === "SWISS" && (
-                      <Field label="Total Swiss Rounds">
-                        <input type="number" value={swissRounds} onChange={e => setSwissRounds(Number(e.target.value))} className={inputCls} />
-                      </Field>
-                    )}
+
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+                    <div className="space-y-6">
+                      <div className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em] mb-2">Match Structure</div>
+                      <div className="grid grid-cols-1 gap-6">
+                        <Field label="Series Format (Best of X)">
+                          <input type="number" value={bestOf} onChange={e => setBestOf(Number(e.target.value))} min={1} className={inputCls} />
+                        </Field>
+                        <Field label="Wins Required to Advance">
+                          <input type="number" value={winsToAdvance} onChange={e => setWinsToAdvance(Number(e.target.value))} min={1} className={inputCls} />
+                        </Field>
+                        <Field label="Allow Draws">
+                          <select value={allowDraw ? "YES" : "NO"} onChange={e => setAllowDraw(e.target.value === "YES")} className={inputCls}>
+                            <option value="NO" className="bg-[#1B1B1B] text-white">NO (FORCE WIN)</option>
+                            <option value="YES" className="bg-[#1B1B1B] text-white">YES (PERMIT DRAW)</option>
+                          </select>
+                        </Field>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em] mb-2">Scoring Parameters</div>
+                      <div className="grid grid-cols-1 gap-6">
+                        <Field label="Sessions per Match">
+                          <input type="number" value={sessionsCount} onChange={e => setSessionsCount(Number(e.target.value))} min={1} className={inputCls} />
+                        </Field>
+                        <Field label="Points per Session">
+                          <input type="number" value={pointsPerSession} onChange={e => setPointsPerSession(Number(e.target.value))} min={0} className={inputCls} />
+                        </Field>
+                        <Field label="Victory Threshold">
+                          <input type="number" value={pointsThreshold} onChange={e => setPointsThreshold(Number(e.target.value))} min={0} className={inputCls} />
+                        </Field>
+                      </div>
+                    </div>
                   </div>
+
+                  {format === "SWISS" && (
+                    <div className="pt-8 border-t border-white/5 animate-in slide-in-from-bottom-2 duration-500">
+                      <div className="text-[9px] font-black text-primary/40 uppercase tracking-[0.2em] mb-6">Swiss System Configuration</div>
+                      <div className="grid grid-cols-4 gap-6">
+                        <Field label="Scheduled Rounds">
+                          <input type="number" value={swissRounds} onChange={e => setSwissRounds(Number(e.target.value))} className={inputCls} />
+                        </Field>
+                        <Field label="Points per Win">
+                          <input type="number" value={swissPointsWin} onChange={e => setSwissPointsWin(Number(e.target.value))} className={inputCls} />
+                        </Field>
+                        <Field label="Points per Draw">
+                          <input type="number" value={swissPointsDraw} onChange={e => setSwissPointsDraw(Number(e.target.value))} className={inputCls} />
+                        </Field>
+                        <Field label="Points per Loss">
+                          <input type="number" value={swissPointsLoss} onChange={e => setSwissPointsLoss(Number(e.target.value))} className={inputCls} />
+                        </Field>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Save Preset removed - moved to dedicated Admin page */}
                 </motion.section>
               )}
 
@@ -391,33 +436,33 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
                   className="space-y-8"
                 >
                   <div className="flex items-center gap-4">
-                    <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Scheduling & Visibility</h3>
+                    <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Schedule & Accessibility</h3>
                     <div className="h-[1px] flex-1 bg-white/5" />
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <Field label="Venue">
-                      <input type="text" value={venue} onChange={e => setVenue(e.target.value)} placeholder="Arena / Online" className={inputCls} />
+                      <input type="text" value={venue} onChange={e => setVenue(e.target.value)} placeholder="Physical / Online" className={inputCls} />
                     </Field>
-                    <Field label="Deployment Mode">
+                    <Field label="Activation Mode">
                       <select value={startNow ? "IMMEDIATE" : "SCHEDULED"} onChange={e => setStartNow(e.target.value === "IMMEDIATE")} className={inputCls}>
-                        <option value="SCHEDULED" className="bg-black">SCHEDULED</option>
-                        <option value="IMMEDIATE" className="bg-black">IMMEDIATE</option>
+                        <option value="SCHEDULED" className="bg-[#1B1B1B] text-white">Scheduled Release</option>
+                        <option value="IMMEDIATE" className="bg-[#1B1B1B] text-white">Instant Activation</option>
                       </select>
                     </Field>
                     {!startNow && (
                       <>
-                        <Field label="Schedule Date">
+                        <Field label="Date">
                           <input type="date" value={date} onChange={e => setDate(e.target.value)} className={inputCls} />
                         </Field>
-                        <Field label="Schedule Time">
+                        <Field label="Time">
                           <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className={inputCls} />
                         </Field>
                       </>
                     )}
-                    <Field label="Access Control">
+                    <Field label="Privacy Level">
                       <select value={isPrivate ? "PRIVATE" : "PUBLIC"} onChange={e => setIsPrivate(e.target.value === "PRIVATE")} className={inputCls}>
-                        <option value="PUBLIC" className="bg-black">PUBLIC</option>
-                        <option value="PRIVATE" className="bg-black">PRIVATE</option>
+                        <option value="PUBLIC" className="bg-[#1B1B1B]">Public Access</option>
+                        <option value="PRIVATE" className="bg-[#1B1B1B]">Private Invite</option>
                       </select>
                     </Field>
                   </div>
@@ -440,7 +485,13 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
               {activeStep !== "IDENTITY" && (
                 <button 
                   type="button" 
-                  onClick={() => setActiveStep(activeStep === "DEPLOYMENT" ? "RULES" : "IDENTITY")}
+                  onClick={() => {
+                    if (activeStep === "DEPLOYMENT") {
+                      setActiveStep("RULES");
+                    } else {
+                      setActiveStep("IDENTITY");
+                    }
+                  }}
                   className="px-8 py-3 bg-white/5 text-white/40 font-bold text-[10px] uppercase tracking-widest rounded-[4px] hover:bg-white/10"
                 >
                   Back
@@ -450,7 +501,13 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
               {activeStep !== "DEPLOYMENT" ? (
                 <button 
                   type="button" 
-                  onClick={() => setActiveStep(activeStep === "IDENTITY" ? "RULES" : "DEPLOYMENT")}
+                  onClick={() => {
+                    if (activeStep === "IDENTITY") {
+                      setActiveStep("RULES");
+                    } else {
+                      setActiveStep("DEPLOYMENT");
+                    }
+                  }}
                   disabled={!steps.find(s => s.id === activeStep)?.valid}
                   className="px-10 py-3 bg-primary text-black font-black text-[10px] uppercase tracking-widest rounded-[4px] hover:brightness-110 transition-all disabled:opacity-20 disabled:grayscale"
                 >
@@ -465,20 +522,11 @@ export default function CreateTournamentForm({ userId, onSuccess, onDiscard }: P
                   Create Tournament
                 </button>
               )}
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-      <CardGameModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSuccess={(newGame) => {
-          setCardGames(prev => [...prev, newGame]);
-          setSelectedCardGameId(newGame.id);
-        }}
-      />
-    </div>
+             </div>
+           </div>
+         </form>
+       </div>
+     </div>
+  </div>
   );
 }

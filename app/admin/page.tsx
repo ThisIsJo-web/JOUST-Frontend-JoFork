@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Inter } from "next/font/google";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 import StatCard from "../components/admin/StatCard";
 import UserRegistry, { AdminUser } from "../components/admin/UserRegistry";
@@ -11,6 +11,9 @@ import UserModal from "../components/admin/UserModal";
 import ConvertGuestModal from "../components/admin/ConvertGuestModal";
 import SystemLogs from "../components/admin/SystemLogs";
 import DevPanel from "../components/admin/DevPanel";
+import PresetManager from "../components/admin/PresetManager";
+
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,17 +58,22 @@ interface Stats {
 export default function AdminDashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"DASHBOARD" | "DEV_TOOLS">("DASHBOARD");
+  const [activeTab, setActiveTab] = useState<"DASHBOARD" | "DEV_TOOLS" | "PRESETS">("DASHBOARD");
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, registeredUsers: 0, guestUsers: 0, totalTournaments: 0, activeTournaments: 0, completedTournaments: 0 });
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
   const [latency, setLatency] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<AdminUser | null>(null);
   const [guestToConvert, setGuestToConvert] = useState<AdminUser | null>(null);
+
+  // Tournament Format management
+  const [formats, setFormats] = useState<any[]>([]);
+  const [isCreatingFormat, setIsCreatingFormat] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -87,18 +95,23 @@ export default function AdminDashboard() {
       const me = await safeJson(meRes);
       if (!me?.roles?.includes("ADMIN")) { 
         if (mounted) router.push("/"); 
+        setIsAuthorized(false);
         return; 
       }
+      setIsAuthorized(true);
 
-      const [usersRes, tourneyRes] = await Promise.all([
+      const [usersRes, tourneyRes, formatsRes] = await Promise.all([
         authenticatedFetch(API_ENDPOINTS.AUTH.USERS),
         authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE),
+        authenticatedFetch(API_ENDPOINTS.PRESETS.BASE),
       ]);
       const usersData: AdminUser[]       = (await safeJson(usersRes))  ?? [];
       const tourneyData: AdminTournament[] = (await safeJson(tourneyRes)) ?? [];
+      const formatsData = (await safeJson(formatsRes)) ?? [];
 
       setUsers(usersData);
       setTournaments(tourneyData);
+      setFormats(formatsData);
       updateStats(usersData, tourneyData);
       
       const endTime = performance.now();
@@ -228,22 +241,24 @@ export default function AdminDashboard() {
     }
   };
 
+  if (isAuthorized === false) return null;
+
   if (isLoading && users.length === 0) return (
     <div className="min-h-screen w-full bg-[#1B1B1B] flex items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="w-12 h-12 border-4 border-white/5 border-t-primary animate-spin" />
-        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary animate-pulse font-poppins italic">Loading Admin OS</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-primary animate-pulse font-poppins italic">Authorizing Admin Session...</p>
       </div>
     </div>
   );
 
   return (
-    <div className={`min-h-screen bg-[#0A0A0A] text-[#E0E0E0] ${inter.className} flex flex-col p-4 md:p-12 gap-0`}>
+    <div className={`min-h-screen bg-[#1B1B1B] text-[#E0E0E0] ${inter.className} flex flex-col p-4 md:p-12 gap-0`}>
       <div className="max-w-7xl mx-auto w-full flex flex-col">
         {/* Tactical Folder Tabs */}
         <div className="flex items-end gap-1 px-4">
           {/* Brand Tab */}
-          <div className="px-6 py-4 bg-black border-t-2 border-l-2 border-r-2 border-white/10 flex flex-col justify-center min-w-[160px]">
+          <div className="px-6 py-4 bg-[#1B1B1B] border-t-2 border-l-2 border-r-2 border-white/10 flex flex-col justify-center min-w-[160px]">
             <div className="text-white font-black tracking-tighter text-xl font-poppins uppercase leading-none">
               JOUST<br/>
               <span className="text-primary text-[8px] tracking-[0.4em] font-bold">ADMIN</span>
@@ -251,14 +266,14 @@ export default function AdminDashboard() {
           </div>
 
           {/* Navigation Tabs */}
-          {(["DASHBOARD", "DEV_TOOLS"] as const).map((tab) => (
+          {(["DASHBOARD", "PRESETS", "DEV_TOOLS"] as const).map((tab) => (
             <button 
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-10 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-t-2 border-l-2 border-r-2 relative z-20 -mb-[2px] ${
                 activeTab === tab 
                   ? "bg-[#111] border-white/20 text-primary pt-6" 
-                  : "bg-black border-white/5 text-white/30 hover:text-white hover:bg-white/5"
+                  : "bg-[#1B1B1B] border-white/5 text-white/30 hover:text-white hover:bg-white/5"
               }`}
             >
               {tab.replace("_", " ")}
@@ -303,7 +318,7 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Column 1: Master Management (Wide) */}
                 <div className="lg:col-span-8 space-y-8">
-                  <div className="bg-black border border-white/10 p-1">
+                  <div className="bg-[#1B1B1B] border border-white/10 p-1">
                     <UserRegistry       
                       users={users}             
                       onDelete={handleDeleteUser}
@@ -314,19 +329,44 @@ export default function AdminDashboard() {
                     />
                   </div>
                   
-                  <div className="bg-black border border-white/10 p-1">
+                  <div className="bg-[#1B1B1B] border border-white/10 p-1">
                     <TournamentTable tournaments={tournaments} onForceComplete={handleForceComplete} />
                   </div>
                 </div>
 
                 {/* Column 2: System Utilities (Narrow) */}
                 <div className="lg:col-span-4 space-y-8">
-                  <div className="bg-black border border-white/10 p-6">
+                  <div className="bg-[#1B1B1B] border border-white/10 p-6">
                     <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-6">System Audit Log</h3>
                     <SystemLogs />
                   </div>
 
-                  <div className="bg-black border border-white/10 p-6">
+                  {/* Tournament Format Manager */}
+                  <div className="bg-[#1B1B1B] border border-white/10 p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">Tournament Formats</h3>
+                      <button
+                        onClick={() => router.push("/admin?tab=PRESETS")}
+                        className="text-[9px] font-black text-primary uppercase tracking-widest hover:brightness-125"
+                      >
+                        MANAGE
+                      </button>
+                    </div>
+ 
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {formats.map(f => (
+                        <div key={f.id} className="flex items-center justify-between p-3 border border-white/5 hover:border-white/10 transition-all">
+                          <div>
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">{f.name}</p>
+                            {f.gameName && <p className="text-[8px] text-primary/60 mt-0.5 tracking-tighter uppercase">{f.gameName}</p>}
+                            {f.isBuiltin && <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">BUILT-IN</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#1B1B1B] border border-white/10 p-6">
                     <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-6">External Gateways</h3>
                     <div className="grid grid-cols-1 gap-3">
                       <button 
@@ -343,6 +383,23 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </motion.div>
+          ) : activeTab === "PRESETS" ? (
+            <motion.div 
+              key="presets"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-7xl mx-auto w-full pb-12"
+            >
+              <div className="mb-12">
+                <Breadcrumbs items={[{ label: "ADMIN", href: "/admin" }, { label: "PRESETS" }]} />
+                <h1 className="text-4xl font-black text-white tracking-tight font-poppins uppercase leading-none mt-2">Format Presets</h1>
+                <p className="text-sm text-white/30 mt-4">Manage standardized tournament configurations and rulesets for organizers.</p>
+              </div>
+              <div className="bg-[#1B1B1B] border border-white/10 p-10">
+                <PresetManager />
+              </div>
+            </motion.div>
           ) : (
             <motion.div 
               key="dev"
@@ -356,7 +413,7 @@ export default function AdminDashboard() {
                 <h1 className="text-4xl font-black text-white tracking-tight font-poppins uppercase leading-none mt-2">Diagnostic Console</h1>
                 <p className="text-sm text-white/30 mt-4">System-level diagnostic tools for direct database state management.</p>
               </div>
-              <div className="bg-black border border-white/10 p-1">
+              <div className="bg-[#1B1B1B] border border-white/10 p-1">
                 <DevPanel tournaments={tournaments} onRefresh={fetchData} />
               </div>
             </motion.div>

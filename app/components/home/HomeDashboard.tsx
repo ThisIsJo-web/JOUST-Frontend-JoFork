@@ -42,12 +42,12 @@ export default function HomeDashboard({ user, tournaments, leaderboard, stats, h
                 {/* TACTICAL STATS: MIDDLE RIGHT (Row 2) */}
                 <div className="lg:col-start-2 lg:row-start-2 grid grid-cols-2 gap-4">
                     {/* Rank Card */}
-                    <div className="bg-black border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
+                    <div className="bg-surface border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">RANK</span>
                         <div className="text-5xl font-black text-white italic group-hover:text-primary transition-colors">#{stats?.rank || "--"}</div>
                     </div>
                     {/* Performance Card */}
-                    <div className="bg-black border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
+                    <div className="bg-surface border border-white/5 p-8 flex flex-col justify-between group hover:border-primary/40 transition-all min-h-[140px]">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">WIN_LOSS</span>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-primary">{stats?.wins || 0}</span>
@@ -63,7 +63,7 @@ export default function HomeDashboard({ user, tournaments, leaderboard, stats, h
                 </div>
 
                 {/* LEADERBOARDS: BOTTOM RIGHT (Row 3) */}
-                <div className="lg:col-start-2 lg:row-start-3 flex flex-col min-h-[450px] bg-black border border-white/5 overflow-hidden">
+                <div className="lg:col-start-2 lg:row-start-3 flex flex-col min-h-[450px] bg-surface border border-white/5 overflow-hidden">
                     <LeaderboardTable 
                         entries={leaderboard} 
                         variant="bento" 

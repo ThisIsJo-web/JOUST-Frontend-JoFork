@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { motion } from "motion/react";
+import { motion, Variants } from "motion/react";
 
 interface FadeInProps {
   children: React.ReactNode;
   className?: string;
 }
 
-const revealVariants = {
+const revealVariants: Variants = {
   hidden: { 
     opacity: 0, 
     y: 20,
@@ -17,7 +17,7 @@ const revealVariants = {
   },
   visible: { 
     opacity: 1, 
-    y: 0,
+    y: 0, 
     filter: "blur(0px)",
     scale: 1,
     transition: {
@@ -29,7 +29,7 @@ const revealVariants = {
   }
 };
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,

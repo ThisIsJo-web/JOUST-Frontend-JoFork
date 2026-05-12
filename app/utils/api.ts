@@ -5,13 +5,21 @@ export const API_URL = (envApiUrl && envApiUrl.startsWith('http'))
   : "/api/backend";
 
 export async function safeJson(res: Response) {
-  try {
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
-  } catch (e) {
-    console.error("JSON Parse Error:", e);
-    return null;
+  const contentType = res.headers.get("content-type");
+  const text = await res.text();
+  
+  if (!text) return null;
+  
+  if (contentType && contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("JSON Parse Error:", e, "Raw text:", text.substring(0, 100));
+      return null;
+    }
   }
+  
+  return null;
 }
 
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
@@ -40,6 +48,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     console.error("Critical Fetch Error:", {
       url: fullUrl,
       method: options.method || 'GET',
+      message: error instanceof Error ? error.message : String(error),
       error
     });
     // Return a fake response object to prevent "res is undefined" crashes
@@ -87,13 +96,12 @@ export const API_ENDPOINTS = {
     USER_STATS: (userId: string) => `/tournaments/users/${userId}/stats`,
   },
   FORMATS: {
-    BASE: '/formats',
-    DETAILS: '/formats/details',
-    DETAILS_BY_FORMAT: (format: string) => `/formats/details/${format}`,
+    DETAILS: '/tournament-formats',
+    DETAILS_BY_ID: (id: string) => `/tournament-formats/${id}`,
   },
-  CARD_GAMES: {
-    LIST: '/card-games',
-    CREATE: '/card-games',
+  PRESETS: {
+    BASE: '/tournament-formats',
+    DETAILS: (id: string) => `/tournament-formats/${id}`,
   },
   MATCHES: {
     SUBMIT: (id: string) => `/matches/${id}/submit`,
@@ -104,5 +112,9 @@ export const API_ENDPOINTS = {
     BATCH_GUESTS: (tournamentId: string) => `/dev/batch-guests/${tournamentId}`,
     GUEST_EXPIRY: '/dev/config/guest-expiry',
     DELETE_TOURNAMENT: (id: string) => `/dev/tournament/${id}`,
-  }
+  },
+  TEMPLATES: {
+    BASE: '/templates',
+    BY_ID: (id: string) => `/templates/${id}`,
+  },
 };

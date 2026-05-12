@@ -39,8 +39,10 @@ export default function MobileCombatFeed({
 
     const getRoundLabel = (round: Round) => {
         const num = round.roundNumber;
-        if (num >= 200) return "Grand Final";
-        if (num >= 100) return `Losers Round ${num - 100}`;
+        const fs = tournament?.format?.system;
+        if (num >= 200) return "Grand Finals";
+        if (num >= 101) return `Losers Round ${num - 100}`;
+        if (fs === "DOUBLE_ELIMINATION") return `Winners Round ${num}`;
         return `Round ${num}`;
     };
 
@@ -136,7 +138,7 @@ export default function MobileCombatFeed({
                             <button 
                                 onClick={() => navigateToTrackedMatch(Math.max(0, trackIndex - 1))}
                                 disabled={trackIndex === 0}
-                                className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
+                                className="w-10 h-10 rounded-xl bg-[#1B1B1B]/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
                             >
                                 ←
                             </button>
@@ -144,7 +146,7 @@ export default function MobileCombatFeed({
                             <button 
                                 onClick={() => navigateToTrackedMatch(Math.min(trackedMatches.length - 1, trackIndex + 1))}
                                 disabled={trackIndex === trackedMatches.length - 1}
-                                className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
+                                className="w-10 h-10 rounded-xl bg-[#1B1B1B]/20 flex items-center justify-center text-white disabled:opacity-20 active:scale-90 transition-all"
                             >
                                 →
                             </button>
@@ -161,7 +163,7 @@ export default function MobileCombatFeed({
                         onChange={(e) => handleTrackParticipant(e.target.value || null)}
                         className="flex-1 bg-foreground/5 text-foreground/60 border border-white/5 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none appearance-none"
                     >
-                        <option value="">Track Participant</option>
+                        <option value="">Search Participant</option>
                         {leaderboard.map(u => (
                             <option key={u.userId} value={u.userId}>{u.username}</option>
                         ))}
@@ -190,7 +192,7 @@ export default function MobileCombatFeed({
                 </div>
             </div>
 
-            {/* Combat Feed - Horizontal Scroll */}
+            {/* Match List - Horizontal Scroll */}
             <div className="flex flex-col gap-4 px-4 overflow-hidden">
                 <div className="flex items-center justify-between">
                     <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins">

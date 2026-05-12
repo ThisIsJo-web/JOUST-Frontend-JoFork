@@ -70,7 +70,7 @@ export default function TournamentDirectory({ tournaments }: TournamentDirectory
                                 placeholder="TOURNAMENT_ID / NAME"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-black border-2 border-white/10 px-4 py-4 text-xs text-white placeholder:text-white/10 focus:border-primary transition-all outline-none uppercase font-poppins"
+                                className="w-full bg-[#1B1B1B] border-2 border-white/10 px-4 py-4 text-xs text-white placeholder:text-white/10 focus:border-primary transition-all outline-none uppercase font-poppins"
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-white/20 font-black">SEARCH</div>
                         </div>
@@ -122,16 +122,16 @@ export default function TournamentDirectory({ tournaments }: TournamentDirectory
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className="group relative bg-black border-2 border-white/10 hover:border-primary hover:bg-primary/5 hover:shadow-[12px_12px_0px_0px_#52B946] transition-all overflow-hidden"
+                                    className="group relative bg-[#1B1B1B] border-2 border-white/10 hover:border-primary hover:bg-primary/5 hover:shadow-[12px_12px_0px_0px_#52B946] transition-all overflow-hidden"
                                 >
                                     <Link href={`/tournaments/${t.id}`} className="flex flex-col h-full">
-                                        <div className="h-40 w-full overflow-hidden border-b-2 border-white/10 group-hover:border-primary transition-colors bg-black relative">
+                                        <div className="h-40 w-full overflow-hidden border-b-2 border-white/10 group-hover:border-primary transition-colors bg-[#1B1B1B] relative">
                                             <img 
                                                 src={t.image || `/placeholder.jpg`} 
                                                 alt={t.name}
                                                 className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 opacity-60 group-hover:opacity-100"
                                             />
-                                            <div className="absolute top-4 right-4 bg-black/80 border border-white/20 px-3 py-1 text-[8px] font-black text-white uppercase tracking-widest">
+                                            <div className="absolute top-4 right-4 bg-[#1B1B1B]/80 border border-white/20 px-3 py-1 text-[8px] font-black text-white uppercase tracking-widest">
                                                 ID_{t.id.slice(0, 8)}
                                             </div>
                                         </div>
@@ -152,7 +152,7 @@ export default function TournamentDirectory({ tournaments }: TournamentDirectory
                                             <div className="flex flex-col gap-3 pt-6 border-t border-white/10">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Format</span>
-                                                    <span className="text-[10px] font-black text-white uppercase">{t.format.replace("_", " ")}</span>
+                                                    <span className="text-[10px] font-black text-white uppercase">{t.format?.system?.replace("_", " ") || "UNKNOWN"}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Prize_Pool</span>

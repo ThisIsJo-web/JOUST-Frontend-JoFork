@@ -4,7 +4,6 @@ import Shop from "./components/home/Shop";
 import TournamentPreview from "./components/home/TournamentPreview";
 import SectionDivider from "./components/home/SectionDivider";
 import Footer from "./components/Footer";
-import * as m from "motion/react";
 import FadeIn, { StaggerContainer } from "./components/FadeIn";
 import { API_ENDPOINTS } from "./utils/api";
 

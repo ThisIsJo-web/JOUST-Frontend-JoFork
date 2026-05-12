@@ -43,7 +43,7 @@ export default function RoundTableLayout({
                 </button>
                 
                 <div className="flex flex-col items-center">
-                    <span className="text-[7px] font-black text-primary uppercase tracking-[0.3em] mb-0.5">Arena Terminal</span>
+                    <span className="text-[7px] font-black text-primary uppercase tracking-[0.3em] mb-0.5">Match Terminal</span>
                     <span className="text-[10px] font-black text-foreground uppercase tracking-tight">
                         Round {mobileRoundIndex + 1}/{rounds.length}
                     </span>

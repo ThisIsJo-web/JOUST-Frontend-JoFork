@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
-import { Tournament, FormatConfig } from "../../types";
+import { Tournament, FormatConfig, TournamentTemplate } from "../../types";
 import ControlRoomHeader from "../../../components/tournaments/manage/ControlRoomHeader";
 import RosterPanel from "../../../components/tournaments/manage/RosterPanel";
 import SpecsPanel from "../../../components/tournaments/manage/SpecsPanel";
@@ -25,8 +25,9 @@ function ControlRoomContent() {
   const [isEditingRules, setIsEditingRules] = useState(false);
   const [formatConfig, setFormatConfig]     = useState<FormatConfig>({});
   const [formatDefinitions, setFormatDefinitions] = useState<any[]>([]);
-  const [cardGames, setCardGames] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
-  const [editState, setEditState] = useState({ name: "", format: "", maxPlayers: 0, prizePool: "" as number | "", isPrivate: false, cardGameId: "" });
+  const [formats, setFormats] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<TournamentTemplate[]>([]);
+  const [editState, setEditState] = useState({ name: "", formatId: "", maxPlayers: 0, prizePool: "" as number | "", isPrivate: false });
 
   const [guestUsername, setGuestUsername]     = useState("");
   const [batchGuestCount, setBatchGuestCount] = useState<number | "">("");
@@ -43,9 +44,17 @@ function ControlRoomContent() {
     if (res.ok) { const data = await safeJson(res); setFormatDefinitions(data?.formats ?? []); }
   };
 
-  const fetchCardGames = async () => {
-    const res = await authenticatedFetch(API_ENDPOINTS.CARD_GAMES.LIST);
-    if (res.ok) { const data = await safeJson(res); setCardGames(data ?? []); }
+  const fetchFormats = async () => {
+    const res = await authenticatedFetch(API_ENDPOINTS.PRESETS.BASE);
+    if (res.ok) { const data = await safeJson(res); setFormats(data ?? []); }
+  };
+ 
+  const fetchTemplates = async () => {
+    // Note: In the new system, templates/presets ARE TournamentFormats.
+    // We'll just reuse the formats list or keep it separate if we have different "template" logic.
+    // For now, I'll keep the fetch but use PRESETS endpoint.
+    const res = await authenticatedFetch(API_ENDPOINTS.PRESETS.BASE);
+    if (res.ok) { const data = await safeJson(res); setTemplates(data ?? []); }
   };
 
   const fetchData = async () => {
@@ -59,7 +68,7 @@ function ControlRoomContent() {
       const usersRes = await authenticatedFetch(API_ENDPOINTS.AUTH.REGISTERED_USERS);
       if (usersRes.ok) setAllUsers(await safeJson(usersRes) ?? []);
 
-      await fetchCardGames();
+      await Promise.all([fetchFormats(), fetchTemplates()]);
 
       const tRes = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!));
       if (tRes.ok) {
@@ -67,11 +76,10 @@ function ControlRoomContent() {
         setTournament(t);
         setEditState({
           name: t.name,
-          format: t.format,
+          formatId: t.formatId || "",
           maxPlayers: t.maxPlayers,
           prizePool: t.prizePool || "",
           isPrivate: t.isPrivate || false,
-          cardGameId: t.cardGame?.id || "",
         });
         setFormatConfig(t.formatConfig || {});
       } else { setMessage("Tournament not found"); }
@@ -83,12 +91,11 @@ function ControlRoomContent() {
     e?.preventDefault();
     const body: any = {
       name: editState.name,
-      format: editState.format,
+      formatId: editState.formatId,
       maxPlayers: Number(editState.maxPlayers),
       prizePool: editState.prizePool === "" ? null : Number(editState.prizePool),
       isPrivate: editState.isPrivate,
       formatConfig,
-      cardGameId: editState.cardGameId || null,
     };
 
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.GET_ONE(tournamentId!), {
@@ -96,13 +103,13 @@ function ControlRoomContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (res.ok) { setMessage("Arena Specs Updated"); setIsEditing(false); setIsEditingRules(false); fetchData(); }
+    if (res.ok) { setMessage("Tournament Specs Updated"); setIsEditing(false); setIsEditingRules(false); fetchData(); }
     else { setMessage("Update failed"); }
   };
 
   const handleAddGuest = async () => {
     if (!guestUsername || !tournament || tournament.participants.length >= tournament.maxPlayers) {
-      setMessage("Arena at maximum capacity"); return;
+      setMessage("Tournament at maximum capacity"); return;
     }
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.JOIN_GUEST(tournamentId!), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: guestUsername }),
@@ -115,7 +122,7 @@ function ControlRoomContent() {
   const handleBatchAddGuests = async () => {
     if (!tournament || !batchGuestCount || Number(batchGuestCount) <= 0) return;
     const countToAdd = Math.min(Number(batchGuestCount), tournament.maxPlayers - tournament.participants.length);
-    if (countToAdd <= 0) { setMessage("Arena at maximum capacity"); return; }
+    if (countToAdd <= 0) { setMessage("Tournament at maximum capacity"); return; }
     if (!confirm(`Initialize bulk deployment of ${countToAdd} guests?`)) return;
     setLoading(true);
     for (let i = 0; i < countToAdd; i++) {
@@ -131,7 +138,7 @@ function ControlRoomContent() {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }),
     });
     const data = await safeJson(res);
-    if (res.ok) { setMessage("Combatant Registered"); fetchData(); }
+    if (res.ok) { setMessage("Participant Registered"); fetchData(); }
     else { setMessage(data?.message || "Registration failed"); }
   };
 
@@ -167,14 +174,14 @@ function ControlRoomContent() {
     }
   };
   const handleRemoveParticipant = async (userId: string) => {
-    if (!confirm("Remove this combatant from the roster?")) return;
+    if (!confirm("Remove this participant from the roster?")) return;
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.LEAVE(tournamentId!), {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     });
     if (res.ok) {
-      setMessage("Combatant Removed");
+      setMessage("Participant Removed");
       fetchData();
     } else {
       const data = await safeJson(res);
@@ -189,14 +196,45 @@ function ControlRoomContent() {
       body: JSON.stringify({ status: "OPEN" }),
     });
     if (res.ok) { setMessage("Registration opened!"); fetchData(); }
-    else { const d = await safeJson(res); setMessage(d?.message || "Failed to open arena"); }
+    else { const d = await safeJson(res); setMessage(d?.message || "Failed to open registration"); }
   };
 
   const handleStartTournament = async () => {
-    if (!confirm("Initiate combat sequence?")) return;
+    if (!confirm("Start tournament sequence?")) return;
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.START(tournamentId!), { method: "POST" });
-    if (res.ok) { setMessage("Combat initiated!"); fetchData(); }
+    if (res.ok) { setMessage("Tournament started!"); fetchData(); }
     else { setMessage("Activation failed"); }
+  };
+
+  const handleApplyTemplate = (template: TournamentTemplate) => {
+    setFormatConfig(template.config);
+  };
+
+  const handleSaveTemplate = async (name: string, description?: string) => {
+    const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
+    const me = await safeJson(meRes);
+    const userId = me?.sub || me?.id;
+
+    const body = {
+      name,
+      description,
+      formatId: tournament?.formatId,
+      config: formatConfig,
+      createdById: userId,
+    };
+
+    const res = await authenticatedFetch(API_ENDPOINTS.TEMPLATES.BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      setMessage("Configuration Archived");
+      fetchTemplates();
+    } else {
+      setMessage("Archival failed");
+    }
   };
 
   if (loading) return (
@@ -209,7 +247,7 @@ function ControlRoomContent() {
   );
 
   if (!tournament) return (
-    <div className="min-h-screen flex items-center justify-center text-white bg-background font-black uppercase tracking-widest">Arena Offline</div>
+    <div className="min-h-screen flex items-center justify-center text-white bg-background font-black uppercase tracking-widest">Tournament Offline</div>
   );
 
   return (
@@ -220,7 +258,7 @@ function ControlRoomContent() {
           tournamentId={tournamentId!}
           onBack={() => router.push("/tournaments/manage")}
           onViewBracket={() => router.push(`/tournaments/${tournamentId}/bracket`)}
-          onOpenArena={handleOpenRegistration}
+          onOpenTournament={handleOpenRegistration}
           onStartTournament={handleStartTournament}
         />
 
@@ -243,7 +281,7 @@ function ControlRoomContent() {
               tournamentId={tournamentId!}
               isEditing={isEditing}
               editState={editState}
-              cardGames={cardGames}
+              formatOptions={formats}
               onToggleEdit={() => setIsEditing(v => !v)}
               onEditChange={(field, value) => setEditState(prev => ({ ...prev, [field]: value }))}
               onSubmit={handleUpdateTournament}
@@ -251,7 +289,6 @@ function ControlRoomContent() {
               onStartTournament={handleStartTournament}
               fetchData={fetchData}
               setMessage={setMessage}
-              onCardGameAdded={(newGame) => setCardGames(prev => [...prev, newGame])}
             />
             <FormatRulesPanel
               tournament={tournament}
@@ -262,6 +299,9 @@ function ControlRoomContent() {
               onDiscard={() => { setIsEditingRules(false); setFormatConfig(tournament.formatConfig || {}); }}
               onRuleChange={(key, value) => setFormatConfig((prev: any) => ({ ...prev, [key]: value }))}
               onSave={handleUpdateTournament}
+              templates={templates}
+              onApplyTemplate={handleApplyTemplate}
+              onSaveTemplate={handleSaveTemplate}
             />
             <DeploymentPanel
               tournament={tournament}

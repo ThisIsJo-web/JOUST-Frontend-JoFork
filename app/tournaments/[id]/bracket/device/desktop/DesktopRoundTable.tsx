@@ -47,7 +47,14 @@ export default function DesktopRoundTable({
                             : "bg-transparent text-neutral-500 hover:bg-white/5 hover:text-neutral-300"
                         }`}
                     >
-                        Phase {round.roundNumber}
+                        {(() => {
+                            const n = round.roundNumber;
+                            const fs = tournament?.format?.system;
+                            if (n >= 200) return "Grand Finals";
+                            if (n >= 101) return `Losers Round ${n - 100}`;
+                            if (fs === "DOUBLE_ELIMINATION") return `Winners Round ${n}`;
+                            return `Round ${n}`;
+                        })()}
                         {activeRound === round.roundNumber && (
                             <div className="absolute bottom-0 left-0 w-full h-1 bg-white/40" />
                         )}
@@ -56,7 +63,7 @@ export default function DesktopRoundTable({
                 <div className="flex-1 border-white/5" />
                 <div className="px-6 flex items-center">
                     <span className="text-[8px] font-black text-neutral-600 uppercase tracking-widest italic">
-                        {tournament?.format.replace("_", " ")} TERMINAL
+                        {(tournament?.format?.system === "HYBRID" ? "TOP CUT" : (tournament?.format?.system?.replace("_", " ") || "UNKNOWN"))} ANALYTICS
                     </span>
                 </div>
             </div>
@@ -77,7 +84,7 @@ export default function DesktopRoundTable({
                                     </span>
                                     {match.isBye && (
                                         <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest italic">
-                                            Tactical Bye
+                                            Auto-Advance
                                         </span>
                                     )}
                                 </div>
@@ -94,7 +101,7 @@ export default function DesktopRoundTable({
                                         isAdmin={isAdmin}
                                         isUpdating={updating === match.id}
                                         leaderboard={leaderboard}
-                                        showPoints={tournament?.format === "SWISS"}
+                                        showPoints={tournament?.format?.system === "SWISS"}
                                     />
                                 </div>
                             </div>
@@ -103,7 +110,7 @@ export default function DesktopRoundTable({
                 ) : (
                     <div className="h-full flex items-center justify-center border border-dashed border-neutral-800 rounded-[2.5rem]">
                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-600 italic animate-pulse">
-                            Awaiting tactical data for this phase...
+                            Awaiting round data...
                         </p>
                     </div>
                 )}

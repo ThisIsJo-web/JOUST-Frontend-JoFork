@@ -4,15 +4,7 @@ import React from "react";
 import Link from "next/link";
 import * as m from "motion/react";
 import { BentoBox } from "../ui/Bento";
-
-interface Tournament {
-  id: string;
-  name: string;
-  status: string;
-  format: string;
-  date?: string;
-  createdAt?: string;
-}
+import { Tournament } from "../../tournaments/types";
 
 interface TournamentListProps {
   tournaments: Tournament[];
@@ -58,7 +50,7 @@ export default function TournamentList({ tournaments, variant = "default", limit
       onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
     >
       {variant === "bento" && (
-        <div className={`p-6 border-b flex items-center justify-between transition-colors duration-500 ${isJoined ? "bg-primary/10 border-primary/20" : "bg-black/30 border-white/5"}`}>
+        <div className={`p-6 border-b flex items-center justify-between transition-colors duration-500 ${isJoined ? "bg-primary/10 border-primary/20" : "bg-surface/30 border-white/5"}`}>
           <div className="flex items-center gap-6">
             <h3 className={`text-[10px] font-black uppercase tracking-[0.5em] font-poppins transition-colors ${isJoined ? "text-primary" : "text-white/40"}`}>
               {isJoined ? "MY TOURNAMENTS" : "Active Tournaments"}
@@ -75,13 +67,13 @@ export default function TournamentList({ tournaments, variant = "default", limit
           <div className="flex items-center gap-2">
             <button 
               onClick={prev}
-              className="w-8 h-8 border border-white/10 flex items-center justify-center text-white/40 hover:text-primary hover:border-primary transition-all bg-black"
+              className="w-8 h-8 border border-white/10 flex items-center justify-center text-white/40 hover:text-primary hover:border-primary transition-all bg-[#1B1B1B]"
             >
               ←
             </button>
             <button 
               onClick={next}
-              className="w-8 h-8 border border-white/10 flex items-center justify-center text-white/40 hover:text-primary hover:border-primary transition-all bg-black"
+              className="w-8 h-8 border border-white/10 flex items-center justify-center text-white/40 hover:text-primary hover:border-primary transition-all bg-[#1B1B1B]"
             >
               →
             </button>
@@ -108,7 +100,7 @@ export default function TournamentList({ tournaments, variant = "default", limit
               className="h-full w-full grid grid-cols-1 md:grid-cols-2 cursor-grab active:cursor-grabbing"
             >
               {/* Image Side - Isolated Parallax */}
-              <div className={`relative h-full overflow-hidden border-r bg-black group transition-colors duration-500 ${isJoined ? "border-primary/20" : "border-white/5"}`}>
+              <div className={`relative h-full overflow-hidden border-r bg-[#1B1B1B] group transition-colors duration-500 ${isJoined ? "border-primary/20" : "border-white/5"}`}>
                 <m.motion.div 
                   className="absolute inset-0"
                   style={{ 
@@ -151,15 +143,18 @@ export default function TournamentList({ tournaments, variant = "default", limit
                 </div>
 
                 <p className="text-white/50 text-xs md:text-sm leading-relaxed max-w-xl font-poppins mb-6 md:mb-8 italic line-clamp-3 md:line-clamp-none">
-                  Experience high-level competitive gaming. Join the arena and prove your skills against the best players in the community.
+                  Experience high-level competitive gaming. Join the tournament and prove your skills against the best players in the community.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 mt-auto">
                   <div className={`px-3 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${isJoined ? "bg-white text-black" : "bg-primary text-black"}`}>
-                    {currentTournament.format?.replace('_', ' ')}
+                    {(() => {
+                      const fs = typeof currentTournament.format === 'string' ? currentTournament.format : currentTournament.format?.system || "UNKNOWN";
+                      return fs === "HYBRID" ? "TOP CUT" : fs.replace(/_/g, ' ');
+                    })()}
                   </div>
                   <Link href={`/tournaments/${currentTournament.id}`} className="text-white font-black text-[10px] md:text-xs uppercase tracking-[0.3em] group-hover:translate-x-2 transition-transform flex items-center gap-2 whitespace-nowrap">
-                    {isJoined ? "ENTER LOBBY" : "VIEW TOURNAMENT"} <span className="text-primary text-lg">→</span>
+                    {isJoined ? "GO TO TOURNAMENT" : "VIEW TOURNAMENT"} <span className="text-primary text-lg">→</span>
                   </Link>
                 </div>
               </div>

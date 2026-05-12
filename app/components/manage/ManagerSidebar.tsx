@@ -23,7 +23,7 @@ export default function ManagerSidebar({ userRoles }: ManagerSidebarProps) {
   }
 
   return (
-    <aside className="w-64 bg-black border-r border-white/10 flex flex-col h-screen sticky top-0">
+    <aside className="w-64 bg-[#1B1B1B] border-r border-white/10 flex flex-col h-screen sticky top-0">
       <div className="p-8 border-b border-white/10">
         <div className="text-white font-black tracking-tighter text-2xl font-poppins uppercase leading-none">
           JOUST<br/>

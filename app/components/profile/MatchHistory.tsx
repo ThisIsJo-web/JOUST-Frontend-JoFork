@@ -16,9 +16,10 @@ interface Activity {
 interface MatchHistoryProps {
   activities?: Activity[];
   variant?: "default" | "bento";
+  userId?: string;
 }
 
-export default function MatchHistory({ activities = [], variant = "default" }: MatchHistoryProps) {
+export default function MatchHistory({ activities = [], variant = "default", userId }: MatchHistoryProps) {
   const getIcon = (type: Activity['type']) => {
     switch (type) {
       case 'win': return (
@@ -42,7 +43,7 @@ export default function MatchHistory({ activities = [], variant = "default" }: M
   };
 
   const content = (
-    <div className={`flex flex-col ${variant === "default" ? "min-h-[400px]" : "h-full"} bg-black text-white`}>
+    <div className={`flex flex-col ${variant === "default" ? "min-h-[400px]" : "h-full"} bg-surface text-white`}>
       <div className={`flex items-center justify-between ${variant === "default" ? "mb-10" : "mb-8"}`}>
         <div className="flex items-center gap-6">
           <div className="w-1.5 h-10 bg-primary" />
@@ -65,7 +66,7 @@ export default function MatchHistory({ activities = [], variant = "default" }: M
               whileHover={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(var(--color-primary), 0.3)" }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.05 }}
-              className="flex items-center gap-8 p-6 border-2 border-white/5 bg-zinc-900/20 relative group overflow-hidden"
+              className="flex items-center gap-8 p-6 border-2 border-white/5 bg-surface relative group overflow-hidden"
             >
               {/* Technical detail: bottom progress line */}
               <div className="absolute bottom-0 left-0 h-[1px] bg-primary/40 w-0 group-hover:w-full transition-all duration-700" />
@@ -124,7 +125,7 @@ export default function MatchHistory({ activities = [], variant = "default" }: M
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
-      className="bg-black border-2 border-white/5 p-12 flex flex-col min-h-[500px] relative overflow-hidden group shadow-[0_0_50px_rgba(0,0,0,1)]"
+      className="bg-surface border-2 border-white/5 p-12 flex flex-col min-h-[500px] relative overflow-hidden group shadow-[0_0_50px_rgba(0,0,0,1)]"
     >
       {/* Subtle grid background for the container */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -132,4 +133,3 @@ export default function MatchHistory({ activities = [], variant = "default" }: M
     </m.motion.div>
   );
 }
-

@@ -8,14 +8,27 @@ import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../utils/api";
 export default function CreateTournamentPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>("");
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [message, setMessage] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchMe = async () => {
       const res = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
       if (res.ok) {
         const data = await safeJson(res);
+        const roles = data?.roles ?? [];
+        if (!roles.includes("ADMIN") && !roles.includes("ORGANIZER")) {
+          setIsAuthorized(false);
+          router.push("/");
+          return;
+        }
+        setIsAuthorized(true);
         setUserId(data?.sub || data?.id || "");
+        setUserRoles(roles);
+      } else {
+        setIsAuthorized(false);
+        router.push("/auth");
       }
     };
     fetchMe();
@@ -28,6 +41,9 @@ export default function CreateTournamentPage() {
     }
     router.push("/tournaments/manage");
   };
+
+  if (isAuthorized === false) return null;
+  if (isAuthorized === null) return <div className="min-h-screen bg-[#1B1B1B] flex items-center justify-center text-primary font-black uppercase tracking-widest animate-pulse">Verifying Creator Status...</div>;
 
   return (
     <ManagerLayout breadcrumbs={[{ label: "TOURNAMENTS", href: "/tournaments/manage" }, { label: "CREATE NEW" }]}>
@@ -46,7 +62,8 @@ export default function CreateTournamentPage() {
         )}
 
         <CreateTournamentForm 
-          userId={userId} 
+          userId={userId}
+          userRoles={userRoles}
           onSuccess={handleSuccess} 
           onDiscard={() => router.push("/tournaments/manage")} 
         />

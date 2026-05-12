@@ -3,12 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authenticatedFetch, API_ENDPOINTS } from "../utils/api";
 
-type User = {
+export type User = {
   id: string;
   username: string;
   email?: string;
   roles?: string[];
   isGuest?: boolean;
+  sub?: string;
 } | null;
 
 type UserContextType = {

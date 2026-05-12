@@ -30,10 +30,15 @@ export default function LiveStandings({ leaderboard, onMaximize }: Props) {
             </thead>
             <tbody className="text-[11px] font-black text-foreground uppercase">
               {leaderboard.map(e => (
-                <tr key={e.userId} className="border-b border-foreground/5 hover:bg-foreground/5 transition-all">
-                  <td className="py-4 px-6 text-primary">#{e.rank.toString().padStart(2, "0")}</td>
-                  <td className="py-4 px-2 truncate max-w-[120px]">{e.username}</td>
-                  <td className="py-4 px-6 text-center">{e.points}</td>
+                <tr key={e.userId} className={`border-b border-foreground/5 transition-all ${e.rank === 1 ? 'bg-primary/5' : 'hover:bg-foreground/5'}`}>
+                  <td className="py-4 px-6 text-primary">
+                    <div className="flex items-center gap-2">
+                      #{e.rank.toString().padStart(2, "0")}
+                      {e.rank === 1 && <span className="text-[8px] px-1 bg-primary text-black">TOP</span>}
+                    </div>
+                  </td>
+                  <td className={`py-4 px-2 truncate max-w-[120px] ${e.rank === 1 ? 'text-primary' : ''}`}>{e.username}</td>
+                  <td className={`py-4 px-6 text-center ${e.rank === 1 ? 'text-primary font-bold' : ''}`}>{e.points}</td>
                   <td className="py-4 px-6 text-right text-foreground/40">{(e.matchWinPct * 100).toFixed(0)}%</td>
                 </tr>
               ))}

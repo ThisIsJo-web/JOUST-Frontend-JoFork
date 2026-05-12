@@ -1,7 +1,22 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../../../utils/api";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { authenticatedFetch, API_ENDPOINTS } from "../../../utils/api";
+import { 
+  ReactFlow, 
+  Background, 
+  Panel,
+  Node,
+  Edge,
+  Handle,
+  Position,
+  NodeProps,
+  ConnectionMode,
+  ReactFlowProvider,
+  useReactFlow
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
+// --- Types ---
 interface RawParticipant {
   id: string; userId: string; seed?: number;
   user: { id: string; username: string; isGuest?: boolean; };
@@ -14,8 +29,14 @@ interface Props {
   tournament: any; isAdmin: boolean; tournamentId: string;
   currentUserId?: string;
   onRefresh: () => void; addLog: (action: string, details?: string) => void;
+  viewMode?: "CARD" | "BRACKET";
 }
 
+// --- Constants ---
+const COLUMN_WIDTH = 360;
+const BASE_MATCH_GAP = 150;
+
+// --- Helper Functions ---
 function sorted(ps: RawParticipant[]) {
   return [...ps].sort((a, b) => {
     if (a.seed == null && b.seed == null) return 0;
@@ -29,7 +50,6 @@ function computeAllRounds(ps: RawParticipant[], format: string): PreviewRound[] 
   const isElim = format === "SINGLE_ELIMINATION" || format === "DOUBLE_ELIMINATION";
   
   if (!isElim) {
-    // For Swiss/Round Robin, we just show 1 round of pairings for now
     const matches: PreviewMatch[] = Array.from({ length: Math.ceil(n / 2) }, (_, i) => ({
       id: `preview-0-${i}`,
       matchIndex: i,
@@ -39,45 +59,29 @@ function computeAllRounds(ps: RawParticipant[], format: string): PreviewRound[] 
     return [{ id: "preview-round-1", roundNumber: 1, matches }];
   }
 
-  // Elimination rounds
   const rounds: PreviewRound[] = [];
   const powerOf2 = Math.pow(2, Math.ceil(Math.log2(n || 2)));
   const totalRounds = Math.log2(powerOf2);
   
   let currentMatchCount = powerOf2 / 2;
-  
   for (let r = 1; r <= totalRounds; r++) {
     const matches: PreviewMatch[] = [];
     for (let m = 0; m < currentMatchCount; m++) {
-      let p1 = null;
-      let p2 = null;
-      
+      let p1 = null; let p2 = null;
       if (r === 1) {
-        // Round 1 seating
-        const p1Idx = m;
-        const p2Idx = n - 1 - m; // Simplified seeding for preview
+        const p1Idx = m; const p2Idx = n - 1 - m; 
         if (s[p1Idx]) p1 = { userId: s[p1Idx].userId, name: s[p1Idx].user.username, seed: s[p1Idx].seed ?? p1Idx + 1, isGuest: s[p1Idx].user.isGuest };
         if (p2Idx > p1Idx && s[p2Idx]) p2 = { userId: s[p2Idx].userId, name: s[p2Idx].user.username, seed: s[p2Idx].seed ?? p2Idx + 1, isGuest: s[p2Idx].user.isGuest };
       }
-      
-      matches.push({
-        id: `preview-${r}-${m}`,
-        matchIndex: m,
-        player1: p1,
-        player2: p2
-      });
+      matches.push({ id: `preview-${r}-${m}`, matchIndex: m, player1: p1, player2: p2 });
     }
     rounds.push({ id: `preview-round-${r}`, roundNumber: r, matches });
     currentMatchCount /= 2;
   }
-
-  // If double elimination, we'd add losers rounds here, but keeping it simpler for now
-  // to avoid making the code too massive. We can add them if the user requests.
-
   return rounds;
 }
 
-// ── Searchable picker ────────────────────────────────────────────────────────
+// --- UI Components ---
 function PlayerPicker({ participants, excludeId, onSelect, onClose }: {
   participants: RawParticipant[]; excludeId: string;
   onSelect: (p: RawParticipant) => void; onClose: () => void;
@@ -88,22 +92,22 @@ function PlayerPicker({ participants, excludeId, onSelect, onClose }: {
     p.userId !== excludeId && p.user.username.toLowerCase().includes(q.toLowerCase())
   );
   return (
-    <div className="absolute z-[100] top-full left-0 mt-2 w-72 bg-[#1a1a1a] border border-primary/40 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="p-3 border-b border-white/5 bg-black/20">
+    <div className="absolute z-[1000] top-full left-0 mt-2 w-80 bg-black border border-white/10 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="p-3 border-b border-white/10 bg-white/5">
         <input ref={ref} value={q} onChange={e => setQ(e.target.value)}
-          placeholder="Search combatant..."
-          className="w-full bg-black/40 border border-white/10 px-4 py-2.5 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-primary/50 rounded-lg font-poppins" />
+          placeholder="Search participants..."
+          className="w-full bg-[#1B1B1B] border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/20 focus:border-primary transition-all outline-none rounded-sm font-sans" />
       </div>
-      <div className="max-h-64 overflow-y-auto custom-scrollbar">
+      <div className="max-h-80 overflow-y-auto custom-scrollbar">
         {opts.length === 0
-          ? <div className="py-10 text-center text-[10px] text-neutral-600 uppercase tracking-[0.3em] font-black">No results found</div>
+          ? <div className="py-8 text-center text-xs text-white/40 italic">No matches found</div>
           : opts.map(p => (
             <button key={p.userId} onClick={() => { onSelect(p); onClose(); }}
-              className="w-full px-5 py-3 text-left flex items-center gap-4 hover:bg-primary/10 transition-all group border-b border-white/5 last:border-0">
-              <span className="text-[10px] font-black text-primary/40 w-6 font-mono">#{p.seed ?? "?"}</span>
+              className="w-full px-4 py-3 text-left flex items-center gap-4 hover:bg-white/5 text-white transition-all border-b border-white/5 last:border-0 group">
+              <span className="text-[10px] font-bold text-primary w-6">#{p.seed ?? "?"}</span>
               <div className="flex-1 flex flex-col">
-                <span className="text-xs font-black text-neutral-300 group-hover:text-primary uppercase tracking-tight transition-colors">{p.user.username}</span>
-                {p.user.isGuest && <span className="text-[7px] text-neutral-600 font-black uppercase tracking-widest">Guest Unit</span>}
+                <span className="text-sm font-medium transition-colors group-hover:text-primary">{p.user.username}</span>
+                {p.user.isGuest && <span className="text-[10px] text-white/40 mt-0.5">Guest Unit</span>}
               </div>
             </button>
           ))
@@ -113,7 +117,6 @@ function PlayerPicker({ participants, excludeId, onSelect, onClose }: {
   );
 }
 
-// ── Participant Row ─────────────────────────────────────────────────────────
 function PreviewParticipantRow({ player, seed, participants, isAdmin, onSwap, isRound1, onOpenChange, currentUserId }: {
   player: SlotPlayer | null; seed: number; participants: RawParticipant[];
   isAdmin: boolean; onSwap: (fromId: string, toId: string) => void; isRound1: boolean;
@@ -131,99 +134,268 @@ function PreviewParticipantRow({ player, seed, participants, isAdmin, onSwap, is
   const canEdit = isAdmin && player && isRound1;
 
   return (
-    <div ref={wrap} className={`relative flex-1 flex flex-col ${open ? "z-[100]" : "z-0"}`}>
+    <div ref={wrap} className={`relative flex items-center h-12 transition-all ${open ? "z-[10000]" : "z-0"} ${!player ? "opacity-30" : ""}`}>
       <button 
         onClick={() => canEdit && setOpen(v => !v)}
-        className={`w-full px-6 py-5 flex justify-between items-center transition-all border-l-2 ${
-          open ? "border-primary bg-primary/5" : isMe ? "border-primary bg-primary/5 shadow-[inset_0_0_20px_rgba(82,185,70,0.1)]" : "border-transparent"
-        } ${canEdit ? "hover:bg-white/5" : "cursor-default"} ${!player ? "opacity-30" : ""}`}
+        className={`flex-1 flex h-full justify-between items-center px-4 transition-all ${
+          open ? "bg-primary/10" : isMe ? "bg-primary/5" : "hover:bg-white/5"
+        } ${canEdit ? "cursor-pointer" : "cursor-default"}`}
       >
-        <div className="flex items-center gap-4">
-           <span className={`text-primary font-black font-mono text-[10px] w-6 shrink-0 ${isMe ? "animate-pulse" : "opacity-40"}`}>{player?.seed ?? seed}</span>
-           <span className={`text-sm font-black uppercase tracking-widest font-poppins ${player ? (isMe ? "text-primary drop-shadow-[0_0_8px_rgba(82,185,70,0.5)]" : "text-white") : "text-neutral-700"}`}>
-             {player?.name ?? "TBD"} {isMe && "(YOU)"}
+        <div className="flex items-center gap-3 min-w-0">
+           <div className={`w-6 h-6 flex items-center justify-center border text-[10px] font-bold ${player ? "border-white/10 text-white/60 bg-white/5" : "border-white/5 text-white/10"}`}>
+                {player?.name?.[0]?.toUpperCase() || "?"}
+           </div>
+           <span className={`text-[12px] font-bold uppercase tracking-wide truncate ${isMe ? "text-primary" : player ? "text-white/80" : "text-white/20"}`}>
+              {player?.name || "TBD"}
            </span>
+           {isMe && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_#52b946]" />}
         </div>
-        {canEdit && (
-          <div className={`transition-all ${open ? "rotate-180 text-primary" : "text-neutral-700"}`}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-          </div>
-        )}
+        <div className={`w-8 h-8 flex items-center justify-center text-xs font-black border-l border-white/5 text-white/20`}>
+           -
+        </div>
       </button>
-      {open && <PlayerPicker participants={participants} excludeId={player!.userId} onSelect={p => onSwap(player!.userId, p.userId)} onClose={() => setOpen(false)} />}
+
+      {open && (
+        <PlayerPicker 
+          participants={participants} 
+          excludeId={player?.userId || ""} 
+          onSelect={onSwap} 
+          onClose={() => setOpen(false)} 
+        />
+      )}
     </div>
   );
 }
 
-// ── Match Card ──────────────────────────────────────────────────────────────
-function PreviewMatchCard({ match, participants, isAdmin, onSwap, isRound1, onOpenChange, currentUserId }: {
-  match: PreviewMatch; participants: RawParticipant[];
-  isAdmin: boolean; onSwap: (a: string, b: string) => void; isRound1: boolean;
-  onOpenChange?: (open: boolean) => void; currentUserId?: string;
+// --- React Flow Nodes ---
+const PreviewMatchNode = ({ data }: NodeProps<{ 
+    match: PreviewMatch;
+    isRound1: boolean;
+    participants: RawParticipant[];
+    isAdmin: boolean;
+    currentUserId?: string;
+    onSwap: (a: string, b: string) => void;
+}>) => {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="relative group">
+            <Handle type="target" position={Position.Left} className="!opacity-0 !w-0 !h-0" />
+            
+            <div className={`w-80 flex flex-col border border-white/10 bg-black transition-all ${open ? "z-[10000] border-primary/50 shadow-2xl" : "z-0 shadow-xl"}`}>
+                <div className="h-8 px-4 border-b border-white/5 bg-zinc-900/50 flex justify-between items-center shrink-0">
+                    <span className="text-[10px] font-bold text-white/40 tracking-wider uppercase">PREVIEW</span>
+                </div>
+                <div className="flex flex-col flex-1">
+                    <PreviewParticipantRow 
+                        player={data.match.player1} 
+                        seed={data.match.matchIndex * 2 + 1} 
+                        participants={data.participants} 
+                        isAdmin={data.isAdmin} 
+                        onSwap={p => data.onSwap(data.match.player1!.userId, p.userId)} 
+                        isRound1={data.isRound1} 
+                        onOpenChange={setOpen} 
+                        currentUserId={data.currentUserId} 
+                    />
+                    <div className="h-[1px] bg-white/5 w-full shrink-0" />
+                    <PreviewParticipantRow 
+                        player={data.match.player2} 
+                        seed={data.match.matchIndex * 2 + 2} 
+                        participants={data.participants} 
+                        isAdmin={data.isAdmin} 
+                        onSwap={p => data.onSwap(data.match.player2!.userId, p.userId)} 
+                        isRound1={data.isRound1} 
+                        onOpenChange={setOpen} 
+                        currentUserId={data.currentUserId} 
+                    />
+                </div>
+            </div>
+
+            <Handle type="source" position={Position.Right} className="!opacity-0 !w-0 !h-0" />
+        </div>
+    );
+};
+
+const PreviewChampionNode = ({ data }: NodeProps<{ label: string }>) => (
+    <div className="flex flex-col items-center">
+        <Handle type="target" position={Position.Left} className="!opacity-0" />
+        <div className="w-72 p-12 flex flex-col items-center justify-center gap-6 bg-white/5 border border-dashed border-white/10 rounded-sm opacity-50 grayscale">
+            <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center text-white/20">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/40">{data.label}</span>
+        </div>
+    </div>
+);
+
+const PreviewHeaderNode = ({ data }: NodeProps<{ label: string; sublabel: string }>) => (
+    <div className="w-80 flex flex-col justify-center border-b border-white/5 bg-zinc-900/30 px-4 py-2 opacity-80">
+        <span className="text-[11px] font-bold text-white tracking-widest uppercase">{data.label}</span>
+        <span className="text-[9px] text-white/30 uppercase tracking-tighter">{data.sublabel}</span>
+    </div>
+);
+
+const PreviewChampionHeaderNode = ({ data }: NodeProps<{ label: string }>) => (
+    <div className="w-80 flex flex-col justify-center border-b border-primary/20 bg-primary/5 px-4 py-2">
+        <span className="text-[11px] font-bold text-primary tracking-widest uppercase">{data.label}</span>
+    </div>
+);
+
+function PreviewCardView({ rounds, participants, isAdmin, currentUserId, onSwap }: {
+    rounds: PreviewRound[];
+    participants: RawParticipant[];
+    isAdmin: boolean;
+    currentUserId?: string;
+    onSwap: (fromId: string, toId: string) => void;
 }) {
-  const [row1Open, setRow1Open] = useState(false);
-  const [row2Open, setRow2Open] = useState(false);
-  const anyOpen = row1Open || row2Open;
+    const [activeRound, setActiveRound] = useState<number>(rounds[0]?.roundNumber ?? 1);
+    const currentRound = rounds.find(r => r.roundNumber === activeRound);
 
-  useEffect(() => {
-    onOpenChange?.(anyOpen);
-  }, [anyOpen]);
+    return (
+        <div style={{ width: '100%', height: '80vh', minHeight: '800px' }} className="flex flex-col bg-neutral-950/20">
+            {/* Round Tabs */}
+            <div className="flex gap-px overflow-x-auto no-scrollbar bg-white/5 border-b border-white/5">
+                {rounds.map((round) => (
+                    <button
+                        key={round.id}
+                        onClick={() => setActiveRound(round.roundNumber)}
+                        className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all min-w-[140px] border-r border-white/5 relative ${
+                            activeRound === round.roundNumber
+                            ? "bg-primary text-black"
+                            : "bg-transparent text-neutral-500 hover:bg-white/5 hover:text-neutral-300"
+                        }`}
+                    >
+                        Phase {round.roundNumber}
+                        {activeRound === round.roundNumber && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/40" />
+                        )}
+                    </button>
+                ))}
+                <div className="flex-1" />
+                <div className="px-6 flex items-center">
+                    <span className="text-[8px] font-black text-neutral-600 uppercase tracking-widest">
+                        {isAdmin ? "Click a slot to swap participants" : "Preview"}
+                    </span>
+                </div>
+            </div>
 
-  return (
-    <div className={`w-80 lg:w-96 flex flex-col shadow-2xl border border-white/5 relative group ${anyOpen ? "z-[200]" : "z-0"}`}
-         style={{ background: "linear-gradient(180deg, #2A2A2A 0%, #222222 100%)" }}>
-      <PreviewParticipantRow player={match.player1} seed={match.matchIndex * 2 + 1} participants={participants} isAdmin={isAdmin} onSwap={onSwap} isRound1={isRound1} onOpenChange={setRow1Open} currentUserId={currentUserId} />
-      <div className="h-[1px] bg-white/5 w-full" />
-      <PreviewParticipantRow player={match.player2} seed={match.matchIndex * 2 + 2} participants={participants} isAdmin={isAdmin} onSwap={onSwap} isRound1={isRound1} onOpenChange={setRow2Open} currentUserId={currentUserId} />
-    </div>
-  );
+            {/* Match Cards */}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-8 py-6">
+                {currentRound ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 py-4">
+                        {currentRound.matches.map((match, i) => (
+                            <div
+                                key={match.id}
+                                className="flex flex-col border border-white/10 bg-black overflow-visible"
+                                style={{ animationDelay: `${i * 40}ms` }}
+                            >
+                                {/* Card Header */}
+                                <div className="h-8 px-4 border-b border-white/5 bg-zinc-900/50 flex justify-between items-center shrink-0">
+                                    <span className="text-[9px] font-bold text-white/40 tracking-widest uppercase">
+                                        Match {(i + 1).toString().padStart(2, '0')}
+                                    </span>
+                                    {!match.player2 && match.player1 && (
+                                        <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">BYE</span>
+                                    )}
+                                </div>
+                                {/* Swappable Participant Rows */}
+                                <div className="flex flex-col">
+                                    <PreviewParticipantRow
+                                        player={match.player1}
+                                        seed={match.matchIndex * 2 + 1}
+                                        participants={participants}
+                                        isAdmin={isAdmin}
+                                        onSwap={(p) => onSwap(match.player1!.userId, p.userId)}
+                                        isRound1={currentRound.roundNumber === 1}
+                                        currentUserId={currentUserId}
+                                    />
+                                    <div className="h-px bg-white/5 w-full shrink-0" />
+                                    <PreviewParticipantRow
+                                        player={match.player2}
+                                        seed={match.matchIndex * 2 + 2}
+                                        participants={participants}
+                                        isAdmin={isAdmin}
+                                        onSwap={(p) => onSwap(match.player2!.userId, p.userId)}
+                                        isRound1={currentRound.roundNumber === 1}
+                                        currentUserId={currentUserId}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="h-full flex items-center justify-center border border-dashed border-neutral-800">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-600 animate-pulse">
+                            No round data
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
 
-// ── Match Wrapper (for absolute positioning & stacking) ──────────────────────
-function MatchWrapper({ match, participants, isAdmin, onSwap, isRound1, topPos, currentUserId }: {
-  match: PreviewMatch; participants: RawParticipant[]; isAdmin: boolean;
-  onSwap: (a: string, b: string) => void; isRound1: boolean; topPos: number;
-  currentUserId?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div 
-      style={{ 
-        top: `${topPos}px`, 
-        position: 'absolute', 
-        left: '50%', 
-        transform: 'translateX(-50%)',
-        zIndex: open ? 500 : 1
-      }}
-    >
-      <PreviewMatchCard 
-        match={match} 
-        participants={participants} 
-        isAdmin={isAdmin} 
-        onSwap={onSwap} 
-        isRound1={isRound1}
-        onOpenChange={setOpen}
-        currentUserId={currentUserId}
-      />
-    </div>
-  );
+function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: Node[] }) {
+    const { setCenter, fitView } = useReactFlow();
+
+    useEffect(() => {
+        if (!trackedUserId) {
+            fitView({ padding: 0.1, duration: 800 });
+            return;
+        }
+        
+        const targetNode = nodes.find(n => 
+            (n.data as any)?.match?.player1?.userId === trackedUserId || 
+            (n.data as any)?.match?.player2?.userId === trackedUserId
+        );
+        
+        if (targetNode) {
+            setCenter(targetNode.position.x + 160, targetNode.position.y + 60, { zoom: 1, duration: 800 });
+        }
+    }, [trackedUserId, nodes, setCenter, fitView]);
+
+    return (
+        <Panel position="bottom-center" className="flex gap-2 p-4 z-50 mb-8">
+            <div className="bg-[#0a0a0a] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-sm p-1 flex items-center">
+                <button onClick={() => fitView({ duration: 800 })} className="px-6 py-3 text-white/60 text-[10px] font-bold hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">
+                    Reset View
+                </button>
+                <div className="w-px h-6 bg-white/10 mx-1" />
+                <button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="px-6 py-3 text-white/60 text-[10px] font-bold hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">
+                    Scroll Page ▼
+                </button>
+            </div>
+        </Panel>
+    );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
-export default function BracketPreview({ tournament, isAdmin, currentUserId, tournamentId, onRefresh, addLog }: Props) {
+function FlowLegend() {
+    return (
+        <Panel position="top-right" className="hidden md:block p-4 pointer-events-none z-50">
+            <div className="flex flex-col gap-1 text-[10px] font-bold tracking-widest text-white/40 uppercase bg-black/80 p-4 border border-white/10 backdrop-blur-sm shadow-xl rounded-sm">
+                <span><strong className="text-white">SCROLL</strong>: PAN CANVAS</span>
+                <span><strong className="text-white">CTRL + SCROLL</strong>: ZOOM</span>
+                <span><strong className="text-white">CLICK & DRAG</strong>: PAN CANVAS</span>
+            </div>
+        </Panel>
+    );
+}
+
+export default function BracketPreview({ tournament, isAdmin, currentUserId, tournamentId, onRefresh, addLog, viewMode = "BRACKET" }: Props) {
   const [swapping, setSwapping] = useState(false);
-  const [zoom, setZoom] = useState(0.6);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [trackedUserId, setTrackedUserId] = useState<string | null>(null);
   
   const participants: RawParticipant[] = tournament?.participants ?? [];
-  const format: string = tournament?.format ?? "SINGLE_ELIMINATION";
-  const rounds = computeAllRounds(participants, format);
+  const format: string = tournament?.format?.system || (typeof tournament?.format === 'string' ? tournament.format : "SINGLE_ELIMINATION");
   const isElimination = format === "SINGLE_ELIMINATION" || format === "DOUBLE_ELIMINATION";
 
-  const maxMatchesInRound = Math.max(...rounds.map(r => r.matches.length));
-  const canvasHeight = Math.max(800, maxMatchesInRound * 180);
+  const nodeTypes = useMemo(() => ({
+    match: PreviewMatchNode,
+    champion: PreviewChampionNode,
+    header: PreviewHeaderNode,
+    championHeader: PreviewChampionHeaderNode
+  }), []);
 
-  const handleSwap = async (fromId: string, toId: string) => {
+  const handleSwap = useCallback(async (fromId: string, toId: string) => {
     if (!isAdmin || swapping) return;
     const fromP = participants.find(p => p.userId === fromId);
     const toP = participants.find(p => p.userId === toId);
@@ -231,6 +403,7 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
     const s = sorted(participants);
     const fromSeed = fromP.seed ?? (s.findIndex(p => p.userId === fromId) + 1);
     const toSeed = toP.seed ?? (s.findIndex(p => p.userId === toId) + 1);
+    
     setSwapping(true);
     try {
       await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.UPDATE_SEED(tournamentId, fromId), {
@@ -243,140 +416,171 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
       onRefresh();
     } catch { addLog("ERROR", "SEED SWAP FAILED"); }
     finally { setSwapping(false); }
-  };
+  }, [isAdmin, swapping, participants, tournamentId, addLog, onRefresh]);
+
+  const getMatchY = useCallback((roundIdx: number, matchIdx: number): number => {
+      if (roundIdx === 0) return (matchIdx + 1) * BASE_MATCH_GAP;
+      const p1Y = getMatchY(roundIdx - 1, matchIdx * 2);
+      const p2Y = getMatchY(roundIdx - 1, matchIdx * 2 + 1);
+      return (p1Y + p2Y) / 2;
+  }, []);
+
+  const { nodes, edges, rounds } = useMemo(() => {
+      const nodes: Node[] = [];
+      const edges: Edge[] = [];
+      const computedRounds = computeAllRounds(participants, format);
+
+      if (!isElimination) return { nodes: [], edges: [], rounds: computedRounds };
+
+      computedRounds.forEach((round, rIdx) => {
+          nodes.push({
+              id: `header-round-${round.roundNumber}`,
+              type: 'header',
+              position: { x: rIdx * COLUMN_WIDTH, y: 50 },
+              data: { label: `ROUND ${round.roundNumber}`, sublabel: 'PREVIEW' },
+              draggable: false,
+              selectable: false
+          });
+
+          round.matches.forEach((match) => {
+              const y = getMatchY(rIdx, match.matchIndex);
+              
+              nodes.push({
+                  id: match.id,
+                  type: 'match',
+                  position: { x: rIdx * COLUMN_WIDTH, y: y },
+                  data: {
+                      match,
+                      isRound1: round.roundNumber === 1,
+                      participants,
+                      isAdmin,
+                      currentUserId: trackedUserId || currentUserId,
+                      onSwap: handleSwap
+                  },
+                  draggable: false
+              });
+
+              const nextMatchIndex = Math.floor(match.matchIndex / 2);
+              const nextMatchId = round.roundNumber < computedRounds.length 
+                  ? `preview-${round.roundNumber + 1}-${nextMatchIndex}` 
+                  : null;
+
+              if (nextMatchId) {
+                  edges.push({
+                      id: `edge-${match.id}-${nextMatchId}`,
+                      source: match.id,
+                      target: nextMatchId,
+                      type: 'step',
+                      style: { stroke: 'rgba(255,255,255,0.15)', strokeWidth: 2 }
+                  });
+              }
+          });
+      });
+
+      if (computedRounds.length > 0) {
+          const finalRound = computedRounds[computedRounds.length - 1];
+          const finalMatch = finalRound.matches[0];
+          if (finalMatch) {
+              const championX = computedRounds.length * COLUMN_WIDTH;
+              const championY = getMatchY(computedRounds.length - 1, 0) - 40;
+
+              nodes.push({
+                  id: 'preview-champion-header',
+                  type: 'championHeader',
+                  position: { x: championX, y: 50 },
+                  data: { label: 'CHAMPION' },
+                  draggable: false,
+                  selectable: false
+              });
+
+              nodes.push({
+                  id: 'preview-champion',
+                  type: 'champion',
+                  position: { x: championX, y: championY },
+                  data: { label: 'The Ultimate Winner' },
+                  draggable: false
+              });
+
+              edges.push({
+                  id: `edge-final-champion`,
+                  source: finalMatch.id,
+                  target: 'preview-champion',
+                  type: 'step',
+                  style: { stroke: 'rgba(255,255,255,0.15)', strokeWidth: 2, strokeDasharray: '4 4' }
+              });
+          }
+      }
+
+      return { nodes, edges, rounds: computedRounds };
+  }, [participants, format, isElimination, isAdmin, currentUserId, trackedUserId, handleSwap, getMatchY]);
 
   return (
-    <div className="space-y-6">
-      {/* Tool bar */}
-      <div className="flex items-center justify-between bg-black/20 p-4 rounded-2xl border border-white/5">
+    <div className="space-y-6 h-full flex flex-col bg-[#0a0a0a]">
+      <div className="flex items-center justify-between px-6 py-4 bg-black border-b border-white/10 shrink-0 z-20">
         <div className="flex items-center gap-4">
-          <div className={`w-2 h-2 rounded-full animate-pulse ${isElimination ? "bg-primary shadow-[0_0_8px_#52b946]" : "bg-amber-400 shadow-[0_0_8px_#fbbf24]"}`} />
-          <span className="text-[10px] font-black text-white uppercase tracking-widest font-poppins">
-            {format.replace(/_/g, " ")} PREVIEW · {participants.length} UNITS
-          </span>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-xl border border-white/5">
-             <button onClick={() => setZoom(Math.max(0.2, zoom - 0.1))} className="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black transition-all active:scale-90">-</button>
-             <div className="flex flex-col items-center px-2">
-               <span className="text-[10px] font-black text-white leading-none">{Math.round(zoom * 100)}%</span>
-               <span className="text-[6px] font-black text-neutral-500 uppercase tracking-widest mt-1">Scale</span>
-             </div>
-             <button onClick={() => setZoom(Math.min(1.5, zoom + 0.1))} className="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg font-black transition-all active:scale-90">+</button>
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <div className="flex flex-col">
+            <span className="text-[11px] font-bold text-white uppercase tracking-wider">
+              {format?.replace(/_/g, " ") || "UNKNOWN"} Configuration
+            </span>
+            <span className="text-[10px] text-white/40 uppercase tracking-tight mt-0.5">
+              Reviewing Seeding for {participants.length} Participants (React Flow Engine)
+            </span>
           </div>
-          <button onClick={() => setZoom(0.6)} className="px-4 py-2 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-primary/20 transition-all">Reset</button>
+        </div>
+        
+        <div className="relative">
+            <select 
+                value={trackedUserId || ""} 
+                onChange={(e) => setTrackedUserId(e.target.value || null)} 
+                className={`bg-white/5 border border-white/10 px-4 py-2 pr-8 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer transition-all rounded-sm ${trackedUserId ? 'text-primary' : 'text-white/60 hover:border-primary hover:text-white'}`}
+            >
+                <option value="">{trackedUserId ? "Back to Neutral" : "Track Participant"}</option>
+                {sorted(participants).map(p => (
+                    <option key={p.userId} value={p.userId}>{p.user.username}</option>
+                ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">▼</div>
         </div>
       </div>
-
-      {/* Canvas / List Area */}
-      <div 
-        ref={scrollContainerRef}
-        className="h-[75vh] overflow-auto custom-scrollbar bg-black/40 rounded-[2.5rem] border border-white/5 relative"
-      >
-        {!isElimination ? (
-          <div 
-            style={{ 
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top center',
-              width: '100%',
-              transition: 'transform 0.2s ease-out',
-              willChange: 'transform'
-            }}
-            className="p-12 max-w-4xl mx-auto space-y-12"
-          >
-            <div className="flex flex-col gap-4">
-               <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] font-poppins">Initial Pairings (Round 1)</h2>
-               <p className="text-neutral-500 text-xs font-questrial italic">In Swiss format, subsequent pairings are determined by win/loss records after each round completes.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
-              {rounds[0]?.matches.map((match, i) => (
-                <div key={match.id} className="relative z-10 space-y-3">
-                  <span className="text-[9px] font-black text-primary/40 uppercase tracking-[0.3em] font-poppins">Match {(i + 1).toString().padStart(2, '0')}</span>
-                  <PreviewMatchCard
-                    match={match}
-                    participants={participants}
-                    isAdmin={isAdmin}
-                    onSwap={handleSwap}
-                    isRound1={true}
-                    currentUserId={currentUserId}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {participants.length % 2 !== 0 && (
-              <div className="p-8 bg-amber-400/5 border border-amber-400/20 rounded-3xl flex items-center gap-6">
-                <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center text-amber-400 font-black">!</div>
-                <div>
-                  <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest font-poppins">Odd Participant Count</p>
-                  <p className="text-neutral-400 text-xs font-questrial">The final combatant will receive a BYE for Round 1.</p>
-                </div>
-              </div>
+      
+      {viewMode === "CARD" ? (
+         <PreviewCardView
+             rounds={rounds}
+             participants={participants}
+             isAdmin={isAdmin}
+             currentUserId={trackedUserId || currentUserId}
+             onSwap={handleSwap}
+         />
+      ) : (
+          <div style={{ width: '100%', height: '80vh', minHeight: '800px' }}>
+            {isElimination && nodes.length > 0 && (
+                <ReactFlowProvider>
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        nodeTypes={nodeTypes}
+                        connectionMode={ConnectionMode.Loose}
+                        fitView
+                        minZoom={0.2}
+                        maxZoom={1.5}
+                        colorMode="dark"
+                        proOptions={{ hideAttribution: true }}
+                        nodesDraggable={false}
+                        nodesConnectable={false}
+                        nodesFocusable={false}
+                        elementsSelectable={false}
+                        zoomOnDoubleClick={false}
+                        panOnScroll={true}
+                    >
+                        <Background color="#111" gap={20} />
+                        <FlowControls trackedUserId={trackedUserId} nodes={nodes} />
+                        <FlowLegend />
+                    </ReactFlow>
+                </ReactFlowProvider>
             )}
           </div>
-        ) : (
-          <div 
-            style={{ 
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top left',
-              width: 'max-content',
-              height: `${canvasHeight}px`
-            }}
-            className="p-12 flex gap-12 items-start"
-          >
-            {rounds.map((round, rIndex) => (
-              <div key={round.id} className="relative h-full w-64 lg:w-72 flex flex-col items-center shrink-0"
-                   style={{ zIndex: (rounds.length - rIndex) * 10 }}>
-                 <h2 className="text-[8px] font-black text-primary/40 uppercase tracking-[0.5em] border-b border-white/5 pb-2 mb-4 w-full text-center font-poppins">
-                    {round.roundNumber === rounds.length ? "CHAMPIONSHIP" : `ROUND ${round.roundNumber}`}
-                 </h2>
-                 <div className="relative flex-1 w-full">
-                    {round.matches.map((match, i) => {
-                      const matchCount = round.matches.length;
-                      const topPos = (canvasHeight / (matchCount + 1)) * (i + 1) - 60;
-                      return (
-                        <MatchWrapper
-                          key={match.id}
-                          match={match}
-                          participants={participants}
-                          isAdmin={isAdmin}
-                          onSwap={handleSwap}
-                          isRound1={round.roundNumber === 1}
-                          topPos={topPos}
-                          currentUserId={currentUserId}
-                        />
-                      );
-                    })}
-                 </div>
-              </div>
-            ))}
-
-            {isElimination && (
-              <div className="h-full w-64 lg:w-72 flex flex-col items-center shrink-0">
-                 <h2 className="text-[8px] font-black text-primary uppercase tracking-[0.5em] border-b border-white/5 pb-2 mb-8 w-full text-center font-poppins">
-                    CHAMPION
-                 </h2>
-                 <div className="flex flex-col justify-center h-full items-center">
-                    <div className="w-64 h-64 border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 bg-white/[0.02]">
-                      <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-white/10">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z"/></svg>
-                      </div>
-                      <span className="text-[9px] font-black text-neutral-800 uppercase tracking-widest font-poppins">Awaiting Victor</span>
-                    </div>
-                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(82,185,70,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(82,185,70,0.4); }
-      `}</style>
+      )}
     </div>
   );
 }

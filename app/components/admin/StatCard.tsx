@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 interface Props {
   title: string;
@@ -15,7 +15,7 @@ export default function StatCard({ title, value, subtitle, color = "text-white",
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       whileHover={{ y: -2 }}
-      className="bg-black border border-white/10 p-6 flex flex-col justify-between h-36 relative transition-all duration-300 group hover:border-white/20"
+      className="bg-[#1B1B1B] border border-white/10 p-6 flex flex-col justify-between h-36 relative transition-all duration-300 group hover:border-white/20"
     >
       {/* Linear Glow Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import * as m from "motion/react";
+import { motion } from "motion/react";
 
 interface PodiumEntry {
   rank: number;
@@ -66,7 +66,7 @@ export default function RankPodium({ entries }: RankPodiumProps) {
 
 function PodiumCard({ entry, className, rankColor, featured = false, delay = 0 }: { entry: PodiumEntry, className: string, rankColor: string, featured?: boolean, delay?: number }) {
   return (
-    <m.motion.div
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -85,7 +85,6 @@ function PodiumCard({ entry, className, rankColor, featured = false, delay = 0 }
 
       <div className="relative z-10 text-center space-y-6">
         <div className="space-y-1">
-           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-2">Authentic Champion</p>
            <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-foreground group-hover:text-primary transition-colors font-poppins">
              {entry.username}
            </h3>
@@ -113,6 +112,6 @@ function PodiumCard({ entry, className, rankColor, featured = false, delay = 0 }
 
       {/* Decorative Corner */}
       <div className={`absolute bottom-0 right-0 w-12 h-12 bg-primary/5 transition-all duration-500 group-hover:bg-primary/20 ${featured ? 'opacity-100' : 'opacity-0'}`} style={{ clipPath: 'polygon(100% 0, 0 100%, 100% 100%)' }} />
-    </m.motion.div>
+    </motion.div>
   );
 }

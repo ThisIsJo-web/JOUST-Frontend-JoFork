@@ -13,7 +13,7 @@ export default function MaximizedModal({ panel, logs, leaderboard, onClose }: Pr
   if (!panel) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-[#1B1B1B]/95 backdrop-blur-2xl animate-in fade-in duration-300">
       <div className="w-full max-w-6xl bg-background border border-primary/20 rounded-[3rem] flex flex-col h-[85vh] shadow-2xl relative overflow-hidden">
         <button onClick={onClose} className="absolute top-10 right-10 w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/20 hover:text-white transition-all font-black text-xl font-poppins z-50">✕</button>
 

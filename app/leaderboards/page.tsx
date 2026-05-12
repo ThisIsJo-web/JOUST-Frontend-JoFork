@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import { authenticatedFetch, API_ENDPOINTS, safeJson } from "../utils/api";
 import HomeFrame from "../components/home/HomeFrame";
 import UserRankCard from "../components/leaderboard/UserRankCard";
 import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
-import LeaderboardHero from "../components/leaderboard/LeaderboardHero";
 import FadeIn, { StaggerContainer } from "../components/FadeIn";
 
 interface GlobalLeaderboardEntry {
@@ -22,7 +21,7 @@ interface GlobalLeaderboardEntry {
   oomw: number;
 }
 
-function LeaderboardsContent() {
+export default function LeaderboardsPage() {
   const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
   const [userStats, setUserStats] = useState<GlobalLeaderboardEntry | null>(null);
   const [loading, setLoading] = useState(true); 
@@ -30,6 +29,7 @@ function LeaderboardsContent() {
 
   const fetchGlobalLeaderboard = async () => {
     try {
+      setLoading(true);
       const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
       let currentUser = null;
       if (meRes.ok) {
@@ -64,22 +64,31 @@ function LeaderboardsContent() {
     fetchGlobalLeaderboard();
   }, []);
 
+  if (loading && leaderboard.length === 0) {
+    return (
+      <HomeFrame className="h-screen w-full flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-8 border-white/5 border-t-primary animate-spin" />
+              <p className="text-xl font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins italic">LOADING LEADERBOARD</p>
+          </div>
+      </HomeFrame>
+    );
+  }
+
   return (
     <HomeFrame className="py-24 md:py-32" showPattern={true}>
       <StaggerContainer className="max-w-7xl mx-auto px-6 md:px-8 space-y-24">
         
         {userStats && (
           <FadeIn>
-            <UserRankCard stats={userStats} loading={loading} />
+            <UserRankCard stats={userStats} />
           </FadeIn>
         )}
 
         <FadeIn>
           <div className="space-y-12">
-            {loading ? (
-              <LeaderboardTable entries={[]} loading={true} />
-            ) : error ? (
-              <div className="p-20 border-4 border-red-500 bg-black text-center font-poppins shadow-[16px_16px_0px_0px_#ef4444]">
+            {error ? (
+              <div className="p-20 border-4 border-red-500 bg-[#1B1B1B] text-center font-poppins shadow-[16px_16px_0px_0px_#ef4444]">
                 <p className="text-red-500 text-xl font-black uppercase tracking-[0.3em] mb-8">{error}</p>
                 <button 
                   onClick={fetchGlobalLeaderboard}
@@ -89,7 +98,7 @@ function LeaderboardsContent() {
                 </button>
               </div>
             ) : leaderboard.length === 0 ? (
-              <div className="p-24 border-4 border-white/10 bg-black text-center font-poppins italic">
+              <div className="p-24 border-4 border-white/10 bg-[#1B1B1B] text-center font-poppins italic">
                 <p className="text-white/20 text-xl font-black uppercase tracking-[0.3em]">NO RANKINGS FOUND</p>
               </div>
             ) : (
@@ -99,20 +108,5 @@ function LeaderboardsContent() {
         </FadeIn>
       </StaggerContainer>
     </HomeFrame>
-  );
-}
-
-export default function LeaderboardsPage() {
-  return (
-    <Suspense fallback={
-        <div className="h-screen w-full bg-[#1B1B1B] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 border-8 border-white/5 border-t-primary animate-spin" />
-                <p className="text-xl font-black uppercase tracking-[0.3em] text-primary animate-pulse font-poppins italic">LOADING LEADERBOARD</p>
-            </div>
-        </div>
-    }>
-      <LeaderboardsContent />
-    </Suspense>
   );
 }

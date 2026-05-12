@@ -19,46 +19,53 @@ export default function MatchCard({
   showPoints,
   trackedUserId
 }: MatchCardProps) {
-  const p1Stats = leaderboard.find(l => l.userId === match.player1?.id);
-  const p2Stats = leaderboard.find(l => l.userId === match.player2?.id);
-  
   const isTracked = trackedUserId && (match.player1?.id === trackedUserId || match.player2?.id === trackedUserId);
   const canScore = isAdmin && !match.winnerId;
 
-  const handleInteraction = (e: React.MouseEvent) => {
-    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    if (canScore) {
-        onOpenScoring();
-    }
-  };
+  // Derive status from match
+  const statusLabel = match.winnerId ? "FULL TIME" : "UPCOMING";
+  const p1Score = match.winnerId ? (match.winnerId === match.player1?.id ? "1" : "0") : "-";
+  const p2Score = match.winnerId ? (match.winnerId === match.player2?.id ? "1" : "0") : "-";
 
   return (
     <div
-      onClick={handleInteraction}
-      className={`w-64 lg:w-72 flex flex-col shadow-2xl transition-all overflow-hidden relative group border-x border-y ${
-        isTracked ? "border-purple-500 ring-2 ring-purple-500/20 scale-105 z-10" : "border-white/5"
-      } ${isUpdating ? "opacity-50 pointer-events-none" : ""} cursor-pointer hover:border-primary/50`}
-      style={{
-        background: "linear-gradient(180deg, #2A2A2A 0%, #222222 100%)",
-      }}
+      onClick={() => canScore && onOpenScoring()}
+      className={`w-72 flex flex-col transition-all overflow-hidden relative group border ${
+        isTracked ? "border-primary ring-2 ring-primary/20 scale-[1.02] z-10" : "border-white/10"
+      } ${isUpdating ? "opacity-50 pointer-events-none" : ""} cursor-pointer hover:border-white/20 bg-[#0d0d0d]`}
     >
-      <ParticipantRow
-        username={match.player1?.username || match.p1Name || undefined}
-        isWinner={match.winnerId ? match.winnerId === match.player1?.id : (!!match.winnerName && match.winnerName === (match.player1?.username || match.p1Name))}
-        points={showPoints ? p1Stats?.points : undefined}
-        isTracked={trackedUserId === match.player1?.id}
-      />
-      <div className="h-[1px] bg-white/5 w-full" />
-      <ParticipantRow
-        username={match.player2?.username || match.p2Name || undefined}
-        isWinner={match.winnerId ? match.winnerId === match.player2?.id : (!!match.winnerName && match.winnerName === (match.player2?.username || match.p2Name))}
-        points={showPoints ? p2Stats?.points : undefined}
-        isBye={match.isBye}
-        isTracked={trackedUserId === match.player2?.id}
-      />
+      {/* Match Header (UEFA Style) */}
+      <div className="px-4 py-2 border-b border-white/5 bg-zinc-900/50 flex justify-between items-center">
+        <span className="text-[10px] font-bold text-white/40 tracking-wider uppercase">
+          {statusLabel}
+        </span>
+        {match.winnerId && (
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+        )}
+      </div>
+
+      <div className="flex flex-col">
+          <ParticipantRow
+            username={match.player1?.username || match.p1Name || undefined}
+            score={p1Score}
+            isWinner={match.winnerId ? match.winnerId === match.player1?.id : false}
+            isTracked={trackedUserId === match.player1?.id}
+          />
+          <div className="h-[1px] bg-white/5 w-full" />
+          <ParticipantRow
+            username={match.player2?.username || match.p2Name || undefined}
+            score={p2Score}
+            isWinner={match.winnerId ? match.winnerId === match.player2?.id : false}
+            isBye={match.isBye}
+            isTracked={trackedUserId === match.player2?.id}
+          />
+      </div>
+
       {canScore && (
         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-          <span className="text-[10px] font-black text-primary uppercase tracking-[2px] bg-background px-4 py-2 border border-primary/50">Score Combat</span>
+          <div className="bg-primary text-black text-[9px] font-black uppercase px-3 py-1 rounded-sm tracking-widest shadow-xl">
+            SCORE
+          </div>
         </div>
       )}
     </div>
@@ -67,41 +74,36 @@ export default function MatchCard({
 
 function ParticipantRow({ 
   username, 
+  score,
   isWinner, 
   isBye,
-  points,
   isTracked
 }: { 
   username?: string, 
+  score: string,
   isWinner: boolean, 
   isBye?: boolean,
-  points?: number,
   isTracked?: boolean
 }) {
   return (
-    <div
-      className={`px-4 py-3 flex justify-between items-center transition-all ${isWinner ? "bg-primary" : ""} ${isTracked && !isWinner ? "bg-purple-500/10" : ""}`}
-    >
-      <div className="flex items-center gap-3 overflow-hidden">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className={`text-[12px] md:text-sm font-black uppercase tracking-widest truncate ${isWinner ? "text-white" : username ? "text-foreground" : "text-foreground/20"}`}>
+    <div className={`flex items-center h-12 transition-all ${isWinner ? "bg-primary/5" : ""}`}>
+      <div className="w-1 bg-primary scale-y-0 transition-transform origin-top group-hover:scale-y-100" />
+      
+      <div className="flex-1 flex justify-between items-center px-4">
+          <div className="flex items-center gap-3 min-w-0">
+             <div className={`w-6 h-6 flex items-center justify-center border text-[10px] font-bold ${username ? "border-white/10 text-white/60 bg-white/5" : "border-white/5 text-white/10"}`}>
+                {username?.[0]?.toUpperCase() || "?"}
+             </div>
+             <span className={`text-[12px] font-bold uppercase tracking-wide truncate ${isWinner ? "text-white" : username ? "text-white/80" : "text-white/20"}`}>
                 {username || (isBye ? "BYE" : "TBD")}
-            </span>
-            {isTracked && (
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]" />
-            )}
+             </span>
+             {isTracked && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_#52b946]" />}
           </div>
-          {points !== undefined && username && (
-            <span className={`text-[8px] font-black uppercase tracking-tight ${isWinner ? "text-white/80" : "text-foreground/40"}`}>
-              {points} PTS
-            </span>
-          )}
-        </div>
+
+          <div className={`w-8 h-8 flex items-center justify-center text-xs font-black border-l border-white/5 ${isWinner ? "text-primary" : "text-white/40"}`}>
+             {score}
+          </div>
       </div>
-      {isWinner && (
-        <span className="text-[10px] font-black text-white uppercase tracking-tighter">WINNER</span>
-      )}
     </div>
   );
 }

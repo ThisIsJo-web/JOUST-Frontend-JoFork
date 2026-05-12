@@ -12,6 +12,7 @@ export default function ManageTournaments() {
   const [loading, setLoading] = useState(true);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [message, setMessage] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   const refresh = async () => {
     const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.BASE);
@@ -20,7 +21,21 @@ export default function ManageTournaments() {
   };
 
   useEffect(() => {
-    refresh().then(() => setLoading(false));
+    const checkAuth = async () => {
+      const meRes = await authenticatedFetch(API_ENDPOINTS.AUTH.ME);
+      if (!meRes.ok) { router.push("/auth"); return; }
+      const me = await safeJson(meRes);
+      const roles = me?.roles || [];
+      if (!roles.includes("ADMIN") && !roles.includes("ORGANIZER")) {
+        setIsAuthorized(false);
+        router.push("/");
+        return;
+      }
+      setIsAuthorized(true);
+      await refresh();
+      setLoading(false);
+    };
+    checkAuth();
   }, []);
 
   const handleComplete = async (id: string) => {
@@ -32,6 +47,16 @@ export default function ManageTournaments() {
       setTimeout(() => setMessage(""), 3000);
     }
   };
+
+  if (isAuthorized === false) return null;
+
+  if (loading || isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-[#1B1B1B] flex items-center justify-center">
+        <div className="text-primary font-black uppercase tracking-[0.5em] animate-pulse">Syncing Organizer Clearance...</div>
+      </div>
+    );
+  }
 
   return (
     <ManagerLayout breadcrumbs={[{ label: "TOURNAMENTS" }]}>
@@ -45,12 +70,20 @@ export default function ManageTournaments() {
             </h1>
           </div>
           
-          <Link 
-            href="/tournaments/create"
-            className="px-10 py-4 bg-primary text-black font-black text-[11px] uppercase tracking-[0.3em] rounded-[4px] hover:brightness-110 transition-all shadow-xl shadow-primary/20"
-          >
-            CREATE NEW +
-          </Link>
+          <div className="flex gap-4">
+            <button 
+              className="px-10 py-4 bg-white/5 border border-white/10 text-white/40 font-black text-[11px] uppercase tracking-[0.3em] rounded-[4px] hover:bg-white/10 transition-all"
+              onClick={() => alert("Templates Slide-over coming soon...")}
+            >
+              TEMPLATES
+            </button>
+            <Link 
+              href="/tournaments/create"
+              className="px-10 py-4 bg-primary text-black font-black text-[11px] uppercase tracking-[0.3em] rounded-[4px] hover:brightness-110 transition-all shadow-xl shadow-primary/20"
+            >
+              CREATE NEW +
+            </Link>
+          </div>
         </div>
 
         {message && (

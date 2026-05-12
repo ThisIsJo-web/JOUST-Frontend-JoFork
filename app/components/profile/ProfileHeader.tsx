@@ -24,7 +24,7 @@ export default function ProfileHeader({ user, isOwnProfile = false, onLogout, va
     <div className="relative group">
       <div className={`
         ${variant === "bento" ? "w-24 h-24 text-3xl" : "w-40 h-40 md:w-56 md:h-56 text-6xl md:text-8xl"}
-        bg-black border-2 border-primary text-primary flex items-center justify-center font-black font-poppins relative z-10 transition-transform duration-300 group-hover:scale-105
+        bg-[#1B1B1B] border-2 border-primary text-primary flex items-center justify-center font-black font-poppins relative z-10 transition-transform duration-300 group-hover:scale-105
       `}>
         {user.username?.[0]?.toUpperCase() || "U"}
         {/* Internal technical lines */}
@@ -62,7 +62,7 @@ export default function ProfileHeader({ user, isOwnProfile = false, onLogout, va
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
-      className="flex flex-col md:flex-row items-center md:items-center gap-16 bg-black border-2 border-white/5 p-12 md:p-24 relative overflow-hidden min-h-[500px]"
+      className="flex flex-col md:flex-row items-center md:items-center gap-16 bg-[#1B1B1B] border-2 border-white/5 p-12 md:p-24 relative overflow-hidden min-h-[500px]"
     >
       {/* Background Greeble Pattern */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none overflow-hidden select-none">
