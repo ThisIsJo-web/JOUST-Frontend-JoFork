@@ -45,9 +45,11 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+ecosystem.config.js
 
 # Vercel
 .vercel
 
 # Turbopack/Cache
 .turbo/
+ecosystem.config.js
