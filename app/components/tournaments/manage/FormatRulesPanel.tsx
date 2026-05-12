@@ -53,7 +53,7 @@ export default function FormatRulesPanel({
   onApplyTemplate,
   onSaveTemplate
 }: Props) {
-  const fields = formatDefinitions.find((f) => f.id === tournament.format)?.configFields ?? [];
+  const fields = formatDefinitions.find((f) => f.id === tournament.formatId)?.configFields ?? [];
   const hasFormat = !!tournament.formatId;
   const [isSavingAsTemplate, setIsSavingAsTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
@@ -110,7 +110,7 @@ export default function FormatRulesPanel({
               className="bg-[#1B1B1B] border border-white/10 text-[9px] font-bold text-primary uppercase px-3 py-1 rounded-[4px] focus:outline-none focus:border-primary"
             >
               <option value="">Load Preset</option>
-              {templates.filter(t => t.format === tournament.format).map(t => (
+              {templates.filter(t => t.format === tournament.formatId).map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>

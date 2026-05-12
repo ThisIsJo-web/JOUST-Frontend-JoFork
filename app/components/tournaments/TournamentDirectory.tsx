@@ -152,7 +152,9 @@ export default function TournamentDirectory({ tournaments }: TournamentDirectory
                                             <div className="flex flex-col gap-3 pt-6 border-t border-white/10">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Format</span>
-                                                    <span className="text-[10px] font-black text-white uppercase">{t.format?.system?.replace("_", " ") || "UNKNOWN"}</span>
+                                                    <span className="text-[10px] font-black text-white uppercase">
+                                                        {((t.format && typeof t.format === 'object') ? t.format.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"}
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Prize_Pool</span>

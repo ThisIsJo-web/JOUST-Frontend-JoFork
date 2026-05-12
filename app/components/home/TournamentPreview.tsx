@@ -101,7 +101,9 @@ export default function TournamentPreview({ tournaments = [] }: TournamentPrevie
                   <div className="w-1 h-12 bg-white/10" />
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black uppercase text-white/40">Format</span>
-                    <span className="text-3xl font-black text-white">{featured.format?.system?.replace("_", " ") || "UNKNOWN"}</span>
+                    <span className="text-3xl font-black text-white">
+                      {((featured.format && typeof featured.format === 'object') ? featured.format.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"}
+                    </span>
                   </div>
                 </div>
               </div>

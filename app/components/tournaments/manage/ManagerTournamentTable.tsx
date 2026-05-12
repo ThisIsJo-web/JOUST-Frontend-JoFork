@@ -32,7 +32,7 @@ export default function ManagerTournamentTable({ tournaments, onComplete }: Mana
                 </div>
               </td>
               <td className="p-4">
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.format?.gameName || "GENERAL"}</span>
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{(typeof t.format === 'object' ? t.format?.gameName : null) || "GENERAL"}</span>
               </td>
               <td className="p-4">
                 <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-[2px] ${
@@ -44,7 +44,9 @@ export default function ManagerTournamentTable({ tournaments, onComplete }: Mana
                 </span>
               </td>
               <td className="p-4">
-                <span className="text-[11px] font-bold text-white/60 uppercase">{t.format?.system?.replace("_", " ") || "UNKNOWN"}</span>
+                <span className="text-[11px] font-bold text-white/60 uppercase">
+                  {((t.format && typeof t.format === 'object') ? t.format.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"}
+                </span>
               </td>
               <td className="p-4">
                 <div className="flex flex-col">

@@ -7,6 +7,9 @@ const inputCls = "w-full h-12 bg-background border border-foreground/10 px-4 tex
 interface EditState {
   name: string;
   formatId: string;
+  maxPlayers: number;
+  prizePool: string | number;
+  isPrivate: boolean;
 }
 
 interface FormatOption {
@@ -19,6 +22,7 @@ interface Props {
   tournament: Tournament;
   tournamentId: string;
   isEditing: boolean;
+  editState: EditState;
   formatOptions: FormatOption[];
   onToggleEdit: () => void;
   onEditChange: (field: keyof EditState, value: any) => void;
@@ -151,9 +155,9 @@ export default function SpecsPanel({ tournament, tournamentId, isEditing, editSt
         <div className="grid grid-cols-2 gap-y-10 gap-x-6">
           {[
             { label: "Designation", value: tournament.name },
-            { label: "Game Context", value: tournament.format?.gameName || "GENERAL" },
-            { label: "Format Preset", value: tournament.format?.name || "NONE SET" },
-            { label: "System",      value: tournament.format?.system === "HYBRID" ? "TOP CUT" : (tournament.format?.system?.replace("_", " ") || "NONE") },
+            { label: "Game Context", value: (typeof tournament.format === 'object' ? tournament.format?.gameName : null) || "GENERAL" },
+            { label: "Format Preset", value: (typeof tournament.format === 'object' ? tournament.format?.name : null) || "NONE SET" },
+            { label: "System",      value: (typeof tournament.format === 'object' ? tournament.format?.system : null) === "HYBRID" ? "TOP CUT" : ((typeof tournament.format === 'object' ? tournament.format?.system : null)?.replace("_", " ") || "NONE") },
             { label: "Capacity",    value: `${tournament.participants.length} / ${tournament.maxPlayers}` },
             { label: "Status",      value: tournament.status, highlight: true },
           ].map(({ label, value, highlight }) => (

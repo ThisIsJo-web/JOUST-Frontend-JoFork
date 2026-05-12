@@ -1,4 +1,4 @@
-import { TournamentStatus } from "../../../tournaments/types";
+import { TournamentStatus } from "../../tournaments/types";
 
 export interface AdminTournament {
   id: string;

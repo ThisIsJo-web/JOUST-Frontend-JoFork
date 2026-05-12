@@ -23,7 +23,9 @@ export default function TournamentRow({ tournament: t, onComplete, onCopyLink, o
         <div>
           <h3 className="text-xl font-black uppercase tracking-tight text-foreground font-poppins">{t.name}</h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">{t.format?.system?.replace("_", " ") || "UNKNOWN"} · {t.maxPlayers} PLAYERS</p>
+            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">
+              {((t.format && typeof t.format === 'object') ? t.format.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"} · {t.maxPlayers} PLAYERS
+            </p>
             <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${t.status === "UPCOMING" ? "bg-white/5 text-white border border-white/20" :
                 t.status === "OPEN" ? "bg-primary/10 text-primary border border-primary/20" :
                   "bg-white/10 text-white/40 border border-white/20"

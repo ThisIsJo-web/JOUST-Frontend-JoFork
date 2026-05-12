@@ -7,7 +7,7 @@ import {
   ReactFlow, 
   Background, 
   Panel,
-  Node,
+  Node as FlowNode,
   Edge,
   Handle,
   Position,
@@ -25,14 +25,14 @@ const BASE_MATCH_GAP = 150;
 const HEADER_HEIGHT = 100;
 
 // Custom Match Node Component
-const MatchNode = ({ data }: NodeProps<{ 
+const MatchNode = ({ data }: NodeProps<FlowNode<{ 
     match: Match; 
     isAdmin: boolean; 
     updating: string | null; 
     leaderboard: LeaderboardEntry[]; 
     trackedUserId: string | null;
     onOpenScoring: (match: Match, pos?: {x: number, y: number}) => void;
-}>) => {
+}>>) => {
     return (
         <div className="relative group">
             {/* Input Handles (Incoming from previous round) */}
@@ -67,7 +67,7 @@ const MatchNode = ({ data }: NodeProps<{
 };
 
 // Custom Champion Node
-const ChampionNode = ({ data }: NodeProps<{ label: string }>) => (
+const ChampionNode = ({ data }: NodeProps<FlowNode<{ label: string }>>) => (
     <div className="flex flex-col items-center">
         <Handle type="target" position={Position.Left} className="!opacity-0" />
         <div className="w-72 p-12 flex flex-col items-center justify-center gap-6 bg-white/5 border border-dashed border-white/10 rounded-sm">
@@ -79,14 +79,14 @@ const ChampionNode = ({ data }: NodeProps<{ label: string }>) => (
     </div>
 );
 
-const HeaderNode = ({ data }: NodeProps<{ label: string; sublabel: string }>) => (
+const HeaderNode = ({ data }: NodeProps<FlowNode<{ label: string; sublabel: string }>>) => (
     <div className="w-80 flex flex-col justify-center border-b border-white/5 bg-zinc-900/30 px-4 py-2 opacity-80">
         <span className="text-[11px] font-bold text-white tracking-widest uppercase">{data.label}</span>
         <span className="text-[9px] text-white/30 uppercase tracking-tighter">{data.sublabel}</span>
     </div>
 );
 
-const ChampionHeaderNode = ({ data }: NodeProps<{ label: string }>) => (
+const ChampionHeaderNode = ({ data }: NodeProps<FlowNode<{ label: string }>>) => (
     <div className="w-80 flex flex-col justify-center border-b border-primary/20 bg-primary/5 px-4 py-2">
         <span className="text-[11px] font-bold text-primary tracking-widest uppercase">{data.label}</span>
     </div>
@@ -102,7 +102,7 @@ interface EliminationLayoutProps {
     addLog: (action: string, details?: string) => void;
 }
  
-function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: Node[] }) {
+function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: FlowNode[] }) {
     const { setCenter, fitView } = useReactFlow();
 
     useEffect(() => {
@@ -179,7 +179,7 @@ export default function EliminationLayout({
     }, []);
 
     const { nodes, edges } = useMemo(() => {
-        const nodes: Node[] = [];
+        const nodes: FlowNode[] = [];
         const edges: Edge[] = [];
 
         // 1. Winners Bracket

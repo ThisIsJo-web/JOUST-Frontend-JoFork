@@ -5,7 +5,7 @@ import {
   ReactFlow, 
   Background, 
   Panel,
-  Node,
+  Node as FlowNode,
   Edge,
   Handle,
   Position,
@@ -119,7 +119,7 @@ function PlayerPicker({ participants, excludeId, onSelect, onClose }: {
 
 function PreviewParticipantRow({ player, seed, participants, isAdmin, onSwap, isRound1, onOpenChange, currentUserId }: {
   player: SlotPlayer | null; seed: number; participants: RawParticipant[];
-  isAdmin: boolean; onSwap: (fromId: string, toId: string) => void; isRound1: boolean;
+  isAdmin: boolean; onSwap: (p: RawParticipant) => void; isRound1: boolean;
   onOpenChange?: (open: boolean) => void; currentUserId?: string;
 }) {
   const [open, setOpen] = useState(false); const wrap = useRef<HTMLDivElement>(null);
@@ -168,14 +168,14 @@ function PreviewParticipantRow({ player, seed, participants, isAdmin, onSwap, is
 }
 
 // --- React Flow Nodes ---
-const PreviewMatchNode = ({ data }: NodeProps<{ 
+const PreviewMatchNode = ({ data }: NodeProps<FlowNode<{ 
     match: PreviewMatch;
     isRound1: boolean;
     participants: RawParticipant[];
     isAdmin: boolean;
     currentUserId?: string;
     onSwap: (a: string, b: string) => void;
-}>) => {
+}>>) => {
     const [open, setOpen] = useState(false);
     return (
         <div className="relative group">
@@ -215,7 +215,7 @@ const PreviewMatchNode = ({ data }: NodeProps<{
     );
 };
 
-const PreviewChampionNode = ({ data }: NodeProps<{ label: string }>) => (
+const PreviewChampionNode = ({ data }: NodeProps<FlowNode<{ label: string }>>) => (
     <div className="flex flex-col items-center">
         <Handle type="target" position={Position.Left} className="!opacity-0" />
         <div className="w-72 p-12 flex flex-col items-center justify-center gap-6 bg-white/5 border border-dashed border-white/10 rounded-sm opacity-50 grayscale">
@@ -227,14 +227,14 @@ const PreviewChampionNode = ({ data }: NodeProps<{ label: string }>) => (
     </div>
 );
 
-const PreviewHeaderNode = ({ data }: NodeProps<{ label: string; sublabel: string }>) => (
+const PreviewHeaderNode = ({ data }: NodeProps<FlowNode<{ label: string; sublabel: string }>>) => (
     <div className="w-80 flex flex-col justify-center border-b border-white/5 bg-zinc-900/30 px-4 py-2 opacity-80">
         <span className="text-[11px] font-bold text-white tracking-widest uppercase">{data.label}</span>
         <span className="text-[9px] text-white/30 uppercase tracking-tighter">{data.sublabel}</span>
     </div>
 );
 
-const PreviewChampionHeaderNode = ({ data }: NodeProps<{ label: string }>) => (
+const PreviewChampionHeaderNode = ({ data }: NodeProps<FlowNode<{ label: string }>>) => (
     <div className="w-80 flex flex-col justify-center border-b border-primary/20 bg-primary/5 px-4 py-2">
         <span className="text-[11px] font-bold text-primary tracking-widest uppercase">{data.label}</span>
     </div>
@@ -334,7 +334,7 @@ function PreviewCardView({ rounds, participants, isAdmin, currentUserId, onSwap 
     );
 }
 
-function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: Node[] }) {
+function FlowControls({ trackedUserId, nodes }: { trackedUserId: string | null; nodes: FlowNode[] }) {
     const { setCenter, fitView } = useReactFlow();
 
     useEffect(() => {
@@ -426,7 +426,7 @@ export default function BracketPreview({ tournament, isAdmin, currentUserId, tou
   }, []);
 
   const { nodes, edges, rounds } = useMemo(() => {
-      const nodes: Node[] = [];
+      const nodes: FlowNode[] = [];
       const edges: Edge[] = [];
       const computedRounds = computeAllRounds(participants, format);
 

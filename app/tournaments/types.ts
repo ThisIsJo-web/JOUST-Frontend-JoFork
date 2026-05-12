@@ -1,11 +1,12 @@
-export type TournamentFormat = "SINGLE_ELIMINATION" | "DOUBLE_ELIMINATION" | "SWISS" | "ROUND_ROBIN";
+export type TournamentFormat = "SINGLE_ELIMINATION" | "DOUBLE_ELIMINATION" | "SWISS" | "ROUND_ROBIN" | "HYBRID";
+export type TournamentStatus = "UPCOMING" | "PENDING" | "OPEN" | "ONGOING" | "COMPLETED";
 
 export interface TournamentFormatModel {
   id: string;
   name: string;
   description?: string | null;
   gameName?: string | null;
-  system: string;
+  system: TournamentFormat;
   config: any;
   isBuiltin: boolean;
 }
@@ -20,7 +21,7 @@ export interface Tournament {
   date: string | null;
   inviteToken: string;
   isPrivate: boolean;
-  status: string;
+  status: TournamentStatus;
   guestCleanupAt: string | null;
   createdAt: string;
   createdById: string;

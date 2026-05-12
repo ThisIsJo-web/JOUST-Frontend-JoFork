@@ -172,14 +172,14 @@ function TournamentViewContent() {
                         whileHover={{ scale: 1.05 }}
                         className="px-4 py-2 bg-primary text-black font-black text-[10px] uppercase tracking-[0.4em] italic shadow-2xl cursor-help peer"
                       >
-                        {tournament.format?.system?.replace("_", " ") || "UNKNOWN"}
+                        {(typeof tournament.format === 'object' ? tournament.format?.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"}
                       </motion.div>
                       
                       <div className="absolute top-full left-0 mt-4 opacity-0 peer-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
                         <div className="bg-[#1B1B1B] p-6 border border-primary/40 w-64 shadow-[0_0_40px_rgba(82,185,70,0.2)]">
                           <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 italic">TOURNAMENT FORMAT</p>
                           <p className="text-[11px] text-white/80 leading-relaxed font-light italic">
-                            {formatExplanations[tournament.format?.system] || "Standard tournament protocol."}
+                            {formatExplanations[typeof tournament.format === 'object' ? tournament.format?.system : ""] || "Standard tournament protocol."}
                           </p>
                         </div>
                       </div>

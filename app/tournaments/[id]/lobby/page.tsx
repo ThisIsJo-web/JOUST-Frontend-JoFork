@@ -126,7 +126,7 @@ function TournamentLobbyContent() {
                  {tournament.status}
                </div>
                <div className="px-4 py-1.5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest">
-                 {tournament.format?.system?.replace("_", " ") || "UNKNOWN"}
+                 {(typeof tournament.format === 'object' ? tournament.format?.system : "UNKNOWN")?.replace("_", " ") || "UNKNOWN"}
                </div>
                <div className="px-4 py-1.5 border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest">
                  PARTICIPANTS: {tournament.participants.length} / {tournament.maxPlayers}

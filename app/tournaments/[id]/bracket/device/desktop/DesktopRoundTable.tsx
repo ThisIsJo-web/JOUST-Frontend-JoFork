@@ -63,7 +63,7 @@ export default function DesktopRoundTable({
                 <div className="flex-1 border-white/5" />
                 <div className="px-6 flex items-center">
                     <span className="text-[8px] font-black text-neutral-600 uppercase tracking-widest italic">
-                        {(tournament?.format?.system === "HYBRID" ? "TOP CUT" : (tournament?.format?.system?.replace("_", " ") || "UNKNOWN"))} ANALYTICS
+                        {((typeof tournament?.format === 'object' ? tournament?.format?.system : null) === "HYBRID" ? "TOP CUT" : ((typeof tournament?.format === 'object' ? tournament?.format?.system : null)?.replace("_", " ") || "UNKNOWN"))} ANALYTICS
                     </span>
                 </div>
             </div>

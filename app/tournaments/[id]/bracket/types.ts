@@ -12,6 +12,7 @@ export interface Match {
   status: string;
   roundId: string;
   isBye: boolean;
+  nextMatchId?: string | null;
 }
 
 export interface Round {
