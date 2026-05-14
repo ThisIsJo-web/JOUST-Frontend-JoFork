@@ -53,6 +53,9 @@ export default function UserRankCard({ stats, loading }: UserRankProps) {
             <div className="bg-surface border-2 border-white/10 px-8 py-3 text-xl font-black uppercase tracking-widest text-white">
               {stats.points} POINTS
             </div>
+            <div className="bg-surface border-2 border-white/10 px-8 py-3 text-xl font-black uppercase tracking-widest text-white">
+              {stats.tournamentsPlayed ?? 0} TOURNAMENTS
+            </div>
           </div>
         </div>
 

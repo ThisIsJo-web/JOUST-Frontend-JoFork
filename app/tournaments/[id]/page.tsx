@@ -9,6 +9,19 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import BracketPreview from "../../components/tournaments/bracket/BracketPreview";
 
+interface TournamentLeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  points: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  matchWinPct: number;
+  omw: number;
+  oomw: number;
+}
+
 function TournamentViewContent() {
   const router = useRouter();
   const params = useParams();
@@ -18,7 +31,10 @@ function TournamentViewContent() {
   const [user, setUser] = useState<{ sub: string; id?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [activeTab, setActiveTab] = useState<"DETAILS" | "PLAYERS" | "BRACKET">("DETAILS");
+  const [activeTab, setActiveTab] = useState<"DETAILS" | "PLAYERS" | "LEADERBOARD" | "BRACKET">("DETAILS");
+  const [tournamentLeaderboard, setTournamentLeaderboard] = useState<TournamentLeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState("");
 
   useEffect(() => {
     if (tournamentId) {
@@ -77,6 +93,35 @@ function TournamentViewContent() {
     }
   };
 
+  const fetchTournamentLeaderboard = async () => {
+    if (!tournamentId) return;
+    setLeaderboardLoading(true);
+    setLeaderboardError("");
+    try {
+      const res = await authenticatedFetch(API_ENDPOINTS.TOURNAMENTS.LEADERBOARD(tournamentId));
+      if (!res.ok) {
+        const err = await safeJson(res);
+        setLeaderboardError(err?.message || `Failed to fetch leaderboard (${res.status})`);
+        setTournamentLeaderboard([]);
+        return;
+      }
+      const data = await safeJson(res);
+      setTournamentLeaderboard(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Tournament leaderboard fetch failed:", error);
+      setLeaderboardError("Connection error: Unable to load leaderboard");
+      setTournamentLeaderboard([]);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "LEADERBOARD" && tournamentId && tournamentLeaderboard.length === 0) {
+      fetchTournamentLeaderboard();
+    }
+  }, [activeTab, tournamentId]);
+
   if (loading && !tournament) {
     return (
       <div className="min-h-screen w-full bg-[#1B1B1B] font-questrial overflow-x-hidden">
@@ -123,6 +168,7 @@ function TournamentViewContent() {
   const tabs = [
     { id: "DETAILS", label: "Overview" },
     { id: "PLAYERS", label: `Players (${tournament.participants.length})` },
+    { id: "LEADERBOARD", label: "Leaderboard" },
     { id: "BRACKET", label: tournament.status === "COMPLETED" ? "Final Results" : "Bracket" }
   ];
 
@@ -287,6 +333,75 @@ function TournamentViewContent() {
                 {tournament.participants.length === 0 && (
                   <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 bg-[#1B1B1B]">
                     <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.5em]">No players registered for this tournament</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "LEADERBOARD" && (
+            <motion.div
+              key="leaderboard"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-12"
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4">
+                  <div className="h-[2px] w-12 bg-primary" />
+                  <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.6em]">TOURNAMENT LEADERBOARD</span>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic">Local Standings</h2>
+              </div>
+
+              <div className="bg-[#0F0F0F] border border-white/10 rounded-3xl p-6">
+                {leaderboardLoading ? (
+                  <div className="flex min-h-[240px] items-center justify-center">
+                    <div className="w-16 h-16 border-8 border-white/10 border-t-primary rounded-full animate-spin" />
+                  </div>
+                ) : leaderboardError ? (
+                  <div className="text-center py-16">
+                    <p className="text-red-500 text-lg font-black uppercase tracking-[0.2em] mb-6">{leaderboardError}</p>
+                    <button
+                      onClick={fetchTournamentLeaderboard}
+                      className="px-8 py-4 bg-primary text-black font-black uppercase tracking-[0.3em]"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : tournamentLeaderboard.length === 0 ? (
+                  <div className="text-center py-16 text-white/40 uppercase tracking-[0.2em] font-black">
+                    No leaderboard data available yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full min-w-[740px] text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/10 text-white/40 uppercase text-[10px] tracking-[0.4em] font-black">
+                          <th className="py-5 px-4">RANK</th>
+                          <th className="py-5 px-4">PLAYER</th>
+                          <th className="py-5 px-4 text-center">PTS</th>
+                          <th className="py-5 px-4 text-center">W / L / D</th>
+                          <th className="py-5 px-4 text-right">WIN %</th>
+                          <th className="py-5 px-4 text-right">OMW</th>
+                          <th className="py-5 px-4 text-right">OOMW</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {tournamentLeaderboard.map((entry) => (
+                          <tr key={entry.userId} className="text-white/90 hover:bg-white/5 transition-colors">
+                            <td className="py-5 px-4 font-black">#{entry.rank}</td>
+                            <td className="py-5 px-4 font-semibold">{entry.username || "Guest"}</td>
+                            <td className="py-5 px-4 text-center font-black">{entry.points}</td>
+                            <td className="py-5 px-4 text-center">{entry.wins} / {entry.losses} / {entry.draws}</td>
+                            <td className="py-5 px-4 text-right text-primary font-black">{Math.round(entry.matchWinPct * 100)}%</td>
+                            <td className="py-5 px-4 text-right">{Math.round(entry.omw * 100)}%</td>
+                            <td className="py-5 px-4 text-right">{Math.round(entry.oomw * 100)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

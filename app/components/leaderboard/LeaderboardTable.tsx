@@ -54,7 +54,7 @@ export default function LeaderboardTable({ entries, loading, variant = "default"
                 key={entry.userId}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="p-5 flex items-center justify-between group hover:bg-white/[0.03] transition-colors"
+                className="p-5 flex items-center justify-between group hover:bg-white/3 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <span className={`text-2xl font-black italic font-poppins tracking-tighter ${idx < 3 ? 'text-primary' : 'text-white/20'}`}>
@@ -72,9 +72,12 @@ export default function LeaderboardTable({ entries, loading, variant = "default"
                     </span>
                   </div>
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end text-right">
                   <span className="text-xl font-black text-white font-poppins">{entry.points}</span>
                   <span className="text-[7px] font-black text-primary uppercase tracking-widest">POINTS</span>
+                  <span className="mt-1 text-[8px] uppercase text-white/40 tracking-[0.3em]">
+                    {entry.tournamentsPlayed} TOURNAMENTS
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -106,11 +109,12 @@ export default function LeaderboardTable({ entries, loading, variant = "default"
       </div>
 
       <div className="w-full overflow-x-auto selection:bg-primary selection:text-black no-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[900px]">
+        <table className="w-full text-left border-collapse min-w-225">
           <thead>
             <tr className="bg-surface/50 border-b border-white/5">
               <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic">RANK</th>
               <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic">COMPETITOR</th>
+              <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic text-center">TOURNAMENTS</th>
               <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic text-center">POINTS</th>
               <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic text-center">W / L / D</th>
               <th className="py-6 px-10 text-[10px] font-black text-white/40 uppercase tracking-[0.5em] font-poppins italic text-right">WIN RATE</th>
@@ -145,6 +149,12 @@ export default function LeaderboardTable({ entries, loading, variant = "default"
                       </span>
                     </div>
                   </div>
+                </td>
+                <td className="py-8 px-10 text-center">
+                  <span className="text-3xl font-black text-white tracking-tighter font-poppins">
+                    {entry.tournamentsPlayed}
+                  </span>
+                  <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.35em]">TOURNAMENTS</div>
                 </td>
                 <td className="py-8 px-10 text-center">
                   <span className="text-4xl font-black text-white tracking-tighter font-poppins">
